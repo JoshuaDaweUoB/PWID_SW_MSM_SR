@@ -1,6 +1,7 @@
 pacman::p_load("meta", "metafor", "DescTools", "car", "readxl", "tidyverse") # load packages
 
 rm(list=ls()) # Clear the global environment
+# testing
 
 settings.meta(CIbracket = "(") 
 settings.meta(CIseparator = "-") 
