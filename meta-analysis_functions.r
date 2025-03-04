@@ -33,10 +33,10 @@ log_transform <- function(df) {
 
 # meta analysis
 
-# Define the function to generate forest plots
-generate_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
+# recent unadjusted estimates
+recent_unadj_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
   filtered_df <- df %>% 
-    filter(exposure_time_frame == "recent") %>% 
+    filter(exposure_time_frame_bin == "recent") %>% 
     filter(!is.na(moa_unadj))
   
   forest_plot <- metagen(TE = effect_unadj_ln,
@@ -53,6 +53,7 @@ generate_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col,
                          text.random = "Overall")
   summary(forest_plot)
   
+  print(paste("Saving plot to:", filename))  # Print the filename to confirm
   png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
   
   forest_sw <- forest(forest_plot, 
@@ -68,6 +69,88 @@ generate_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col,
                       subgroup.name = "",
                       subgroup = TRUE,
                       print.byvar = FALSE,
-                      col.by = "black") 
+                      col.subgroup = "black") 
+  dev.off()
+}
+
+# recent adjusted estimates (structural factors)
+recent_adj1_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
+  filtered_df <- df %>% 
+    filter(exposure_time_frame_bin == "recent") %>% 
+    filter(!is.na(moa_adj1)) %>%
+    filter(moa_adj1 != "NR")
+  
+  forest_plot <- metagen(TE = effect_adj1_ln,
+                         lower = effect_adj_lb1_ln,
+                         upper = effect_adj_ub1_ln,
+                         studlab = lead_author,
+                         data = filtered_df,
+                         sm = "RR",
+                         method.tau = "DL",
+                         common = FALSE,
+                         random = TRUE, 
+                         backtransf = TRUE,
+                         subgroup = pub_status,
+                         text.random = "Overall")
+  summary(forest_plot)
+  
+  print(paste("Saving plot to:", filename))  # Print the filename to confirm
+  png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
+  
+  forest_sw <- forest(forest_plot, 
+                      sortvar = lead_author,
+                      xlim = c(0.2, 4),             
+                      leftcols = c("country", "cohort"), 
+                      leftlabs = c("Country", "Cohort"),
+                      digits = 2,
+                      digits.tau2 = 1,
+                      digits.I2 = 1,
+                      digits.pval.Q = 3,
+                      col.inside = "black",
+                      subgroup.name = "",
+                      subgroup = TRUE,
+                      print.byvar = FALSE,
+                      col.subgroup = "black") 
+  dev.off()
+}
+
+# recent adjusted estimates (injecting risk factors)
+recent_adj2_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
+  filtered_df <- df %>% 
+    filter(exposure_time_frame_bin == "recent") %>% 
+    filter(!is.na(moa_adj2)) %>%
+    filter(moa_adj2 != "NR")
+  
+  forest_plot <- metagen(TE = effect_adj2_ln,
+                         lower = effect_adj_lb2_ln,
+                         upper = effect_adj_ub2_ln,
+                         studlab = lead_author,
+                         data = filtered_df,
+                         sm = "RR",
+                         method.tau = "DL",
+                         common = FALSE,
+                         random = TRUE, 
+                         backtransf = TRUE,
+                         subgroup = pub_status,
+                         text.random = "Overall")
+  summary(forest_plot)
+  
+  print(paste("Saving plot to:", filename))  # Print the filename to confirm
+  png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
+  
+  forest_sw <- forest(forest_plot, 
+                      sortvar = lead_author,
+                      xlim = c(0.2, 4),             
+                      leftcols = c("country", "cohort"), 
+                      leftlabs = c("Country", "Cohort"),
+                      digits = 2,
+                      digits.tau2 = 1,
+                      digits.I2 = 1,
+                      digits.pval.Q = 3,
+                      col.inside = "black",
+                      subgroup.name = "",
+                      subgroup = TRUE,
+                      print.byvar = FALSE,
+                      col.subgroup = "black") 
   dev.off()
 }
