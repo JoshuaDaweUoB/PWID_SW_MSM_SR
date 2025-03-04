@@ -1,10 +1,25 @@
-pacman::p_load("meta", "metafor", "DescTools", "car", "readxl", "tidyverse") # load packages
+# load packages
+pacman::p_load("meta", "metafor", "DescTools", "car", "readxl", "tidyverse") 
 
-rm(list=ls()) # Clear the global environment
-# testing
-
+# housekeeping
 settings.meta(CIbracket = "(") 
 settings.meta(CIseparator = "-") 
+
+# load dataframes
+hiv_sw_all <- read_excel("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/Data extraction/Full data extraction_24022025.xlsx", sheet = "HIV - Sex work - All") 
+hiv_sw_males <- read_excel("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/Data extraction/Full data extraction_24022025.xlsx", sheet = "HIV - Sex work - Male") 
+hiv_sw_females <- read_excel("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/Data extraction/Full data extraction_24022025.xlsx", sheet = "HIV - Sex work - Female") 
+hcv_sw_all <- read_excel("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/Data extraction/Full data extraction_24022025.xlsx", sheet = "HCV - Sex work - All") 
+hcv_sw_males <- read_excel("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/Data extraction/Full data extraction_24022025.xlsx", sheet = "HCV - Sex work - Male") 
+hcv_sw_females <- read_excel("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/Data extraction/Full data extraction_24022025.xlsx", sheet = "HCV - Sex work - Female") 
+
+
+
+### sex work 
+
+## HIV (males and females)
+
+
 
 ########## sex work ############
 
