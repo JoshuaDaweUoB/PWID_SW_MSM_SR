@@ -3,12 +3,27 @@ pacman::p_load("tidyverse")
 
 # create best effect variable 
 create_effect_best <- function(df) {
+  # Convert "-" to NA
+  df <- df %>%
+    mutate(
+      effect_adj1 = na_if(effect_adj1, "-"),
+      effect_adj_lb1 = na_if(effect_adj_lb1, "-"),
+      effect_adj_ub1 = na_if(effect_adj_ub1, "-")
+    )
+  
+  print("Before mutate:")
+  print(df %>% select(effect_adj1, effect_unadj))  # Print relevant columns before mutate
+  
   df <- df %>%
     mutate(
       effect_best = ifelse(!is.na(effect_adj1), effect_adj1, effect_unadj),
       effect_best_lb = ifelse(!is.na(effect_adj_lb1), effect_adj_lb1, effect_unadj_lb),
       effect_best_ub = ifelse(!is.na(effect_adj_ub1), effect_adj_ub1, effect_unadj_ub)
     )
+  
+  print("After mutate:")
+  print(df %>% select(effect_adj1, effect_unadj, effect_best))  # Print relevant columns after mutate
+  
   return(df)
 }
 
