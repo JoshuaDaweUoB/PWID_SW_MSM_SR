@@ -63,6 +63,13 @@ log_transform <- function(df) {
   return(df)
 }
 
+# keep studies where use equals "yes"
+filter_use_yes <- function(df) {
+  df <- df %>%
+    filter(use == "yes")
+  return(df)
+}
+
 # function to save dataframes as Excel sheets
 save_dataframes_to_excel <- function(dfs, sheet_names, file_path) {
   # create a named list of dataframes
