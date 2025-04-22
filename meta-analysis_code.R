@@ -26,6 +26,7 @@ rec_adj2 <- c("sw_recent_hiv_all_adj2.png", "sw_recent_hiv_males_adj2.png", "sw_
 rec_best <- c("sw_recent_hiv_all_best.png", "sw_recent_hiv_males_best.png", "sw_recent_hiv_females_best.png", "sw_recent_hiv_msm_best.png", "sw_recent_hcv_all_best.png", "sw_recent_hcv_males_best.png", "sw_recent_hcv_females_best.png", "sw_recent_hcv_msm_best.png")
 sheet_names <- c("HIV_Sex_Work_All", "HIV_Sex_Work_Males", "HIV_Sex_Work_Females", "HIV_MSM", "HCV_Sex_Work_All", "HCV_Sex_Work_Males", "HCV_Sex_Work_Females", "HCV_MSM")
 subgroup_names <- c("pub_status", "2016_bin", "incidence_method", "who_region", "lmic_4cat", "hiv_crim", "rob_3cat")
+rec_best_subgroup <- c("recent_hiv_all_best_subgroup.png", "recent_hiv_males_best_subgroup.png", "recent_hiv_females_best_subgroup.png", "recent_hiv_msm_best_subgroup.png", "recent_hcv_all_best_subgroup.png", "recent_hcv_males_best_subgroup.png", "recent_hcv_females_best_subgroup.png", "recent_hcv_msm_best_subgroup.png")
 
 # data cleaning
 
@@ -76,3 +77,13 @@ for (i in 1:length(dfs)) {
   print(filename)  # Print the filename to confirm
   recent_best_forest_plot(dfs[[i]], "recent", "effect_best_ln", "effect_best_lb_ln", "effect_best_ub_ln", "lead_author", "pub_status", filename)
 }
+
+# subgroup forest plots
+
+# recent best effect forest plots
+for (i in 1:length(dfs)) {
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", rec_best_subgroup[i])
+  print(filename)  # Print the filename to confirm
+  subgroup_analysis_recent_best(dfs[[i]], "recent", "effect_best_ln", "effect_best_lb_ln", "effect_best_ub_ln", "lead_author", subgroup_names, filename)
+}
+

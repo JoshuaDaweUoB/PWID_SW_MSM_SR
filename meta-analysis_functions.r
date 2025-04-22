@@ -247,7 +247,7 @@ recent_best_forest_plot <- function(df, exposure_time_frame, effect_col, lower_c
 # subgroup analysis of recent best estimates
 
 # Function to conduct subgroup analyses
-subgroup_analysis <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, subgroup_vars, output_dir) {
+subgroup_analysis_recent_best <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, subgroup_vars, base_filename) {
   # Filter the dataframe for recent exposure time frame
   filtered_df <- df %>%
     filter(exposure_time_frame_bin == "recent") %>%
@@ -256,43 +256,43 @@ subgroup_analysis <- function(df, exposure_time_frame, effect_col, lower_col, up
   
   # Loop through each subgroup variable
   for (subgroup_var in subgroup_vars) {
+    # Filter out rows with missing values in the subgroup variable
+    subgroup_filtered_df <- filtered_df %>%
+      filter(!is.na(.data[[subgroup_var]]))
+    
     # Generate the forest plot for the current subgroup
     forest_plot <- metagen(
-      TE = filtered_df[[effect_col]],
-      lower = filtered_df[[lower_col]],
-      upper = filtered_df[[upper_col]],
-      studlab = filtered_df[[studlab_col]],
-      data = filtered_df,
+      TE = subgroup_filtered_df[[effect_col]],
+      lower = subgroup_filtered_df[[lower_col]],
+      upper = subgroup_filtered_df[[upper_col]],
+      studlab = subgroup_filtered_df[[studlab_col]],
+      data = subgroup_filtered_df,
       sm = "RR",
       method.tau = "DL",
       common = FALSE,
       random = TRUE,
       backtransf = TRUE,
-      subgroup = filtered_df[[subgroup_var]],
+      subgroup = subgroup_filtered_df[[subgroup_var]],
       text.random = "Overall"
     )
     
-    # Print summary of the forest plot
-    summary(forest_plot)
-    
-    # Define the output filename
-    filename <- file.path(output_dir, paste0("forest_plot_", subgroup_var, ".png"))
-    print(paste("Saving plot to:", filename))  # Print the filename to confirm
+    # Construct the filename for the current subgroup plot
+    subgroup_filename <- gsub("\\.png$", paste0("_", subgroup_var, ".png"), base_filename)
     
     # Save the forest plot as a PNG
-    png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
+    png(filename = subgroup_filename, width = 30, height = 20, units = "cm", res = 500)
     forest(
       forest_plot,
-      sortvar = filtered_df[[studlab_col]],
+      sortvar = subgroup_filtered_df[[studlab_col]],
       xlim = c(0.2, 4),
-      leftcols = c("country", "cohort"),
-      leftlabs = c("Country", "Cohort"),
+      leftcols = c("study", "country"),
+      leftlabs = c("Study", "Country"),
       digits = 2,
       digits.tau2 = 1,
       digits.I2 = 1,
       digits.pval.Q = 3,
       col.inside = "black",
-      subgroup.name = subgroup_var,
+      subgroup.name = "",
       subgroup = TRUE,
       print.byvar = FALSE,
       col.subgroup = "black"
@@ -300,19 +300,3 @@ subgroup_analysis <- function(df, exposure_time_frame, effect_col, lower_col, up
     dev.off()
   }
 }
-
-# Example usage of the subgroup_analysis function
-subgroup_vars <- c("pub_status", "2016_bin", "incidence_method", "who_region", "lmic_4cat", "hiv_crim", "rob_3cat")
-output_dir <- "path/to/output/directory"  # Replace with your desired output directory
-
-# Call the function for subgroup analysis
-subgroup_analysis(
-  df = your_dataframe,  # Replace with your dataframe
-  exposure_time_frame = "recent",
-  effect_col = "effect_best_ln",
-  lower_col = "effect_best_lb_ln",
-  upper_col = "effect_best_ub_ln",
-  studlab_col = "study",
-  subgroup_vars = subgroup_vars,
-  output_dir = output_dir
-)
