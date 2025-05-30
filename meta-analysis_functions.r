@@ -121,6 +121,53 @@ recent_unadj_forest_plot <- function(df, exposure_time_frame, effect_col, lower_
   dev.off()
 }
 
+# recent unadjusted estimates (combined)
+recent_unadj_forest_plot_combined <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
+  filtered_df <- df %>% 
+    filter(exposure_time_frame_bin == "recent") %>% 
+    filter(!is.na(moa_unadj))
+  
+  forest_plot <- metagen(
+    TE = filtered_df[[effect_col]],
+    lower = filtered_df[[lower_col]],
+    upper = filtered_df[[upper_col]],
+    studlab = filtered_df[[studlab_col]],
+    data = filtered_df,
+    sm = "RR",
+    method.tau = "DL",
+    common = FALSE,
+    random = TRUE, 
+    backtransf = TRUE,
+    subgroup = filtered_df[[byvar_col]],
+    text.random = "Overall"
+  )
+  summary(forest_plot)
+  
+  print(paste("Saving plot to:", filename))  # Print the filename to confirm
+  png(filename = filename, width = 35, height = 35, units = "cm", res = 500)
+  
+  forest_sw <- forest(
+    forest_plot, 
+    sortvar = study,
+    xlim = c(0.2, 4),             
+    leftcols = c("study", "cohort", "country", "pub_status"), 
+    leftlabs = c("Study", "Cohort", "Country", "Publication Status"),
+    digits = 2,
+    digits.tau2 = 1,
+    digits.I2 = 1,
+    digits.pval.Q = 3,
+    col.inside = "black",
+    subgroup.name = "",
+    subgroup = TRUE,
+    print.byvar = FALSE,
+    col.subgroup = "black",
+    overall = FALSE,             # Remove overall pooled estimate
+    overall.hetstat = FALSE,     # Remove overall heterogeneity
+    test.subgroup = FALSE        # Remove test for subgroup differences
+  ) 
+  dev.off()
+}
+
 # recent adjusted estimates (structural factors)
 recent_adj1_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
   filtered_df <- df %>% 
