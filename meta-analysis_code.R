@@ -9,14 +9,14 @@ settings.meta(CIseparator = "-")
 setwd("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV")
 
 # load dataframes
-hiv_sw_all <- read_excel("Data extraction/Full data extraction_08042025.xlsx", sheet = "HIV - Sex work - All") 
-hiv_sw_males <- read_excel("Data extraction/Full data extraction_08042025.xlsx", sheet = "HIV - Sex work - Male") 
-hiv_sw_females <- read_excel("Data extraction/Full data extraction_08042025.xlsx", sheet = "HIV - Sex work - Female") 
-hiv_msm <- read_excel("Data extraction/Full data extraction_08042025.xlsx", sheet = "HIV - MSM") 
-hcv_sw_all <- read_excel("Data extraction/Full data extraction_08042025.xlsx", sheet = "HCV - Sex work - All") 
-hcv_sw_males <- read_excel("Data extraction/Full data extraction_08042025.xlsx", sheet = "HCV - Sex work - Male") 
-hcv_sw_females <- read_excel("Data extraction/Full data extraction_08042025.xlsx", sheet = "HCV - Sex work - Female") 
-hcv_msm <- read_excel("Data extraction/Full data extraction_08042025.xlsx", sheet = "HCV - MSM") 
+hiv_sw_all <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HIV - Sex work - All") 
+hiv_sw_males <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HIV - Sex work - Male") 
+hiv_sw_females <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HIV - Sex work - Female") 
+hiv_msm <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HIV - MSM") 
+hcv_sw_all <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - Sex work - All") 
+hcv_sw_males <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - Sex work - Male") 
+hcv_sw_females <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - Sex work - Female") 
+hcv_msm <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - MSM") 
 
 # define dataframes and lists
 dfs <- list(hiv_sw_all, hiv_sw_males, hiv_sw_females, hiv_msm, hcv_sw_all, hcv_sw_males, hcv_sw_females, hcv_msm)
@@ -45,6 +45,16 @@ for (i in 1:length(dfs)) {
   df <- filter_use_yes(df)
   dfs[[i]] <- df
 }
+
+# Reassign filtered data frames back to original variables
+hiv_sw_all     <- dfs[[1]]
+hiv_sw_males   <- dfs[[2]]
+hiv_sw_females <- dfs[[3]]
+hiv_msm        <- dfs[[4]]
+hcv_sw_all     <- dfs[[5]]
+hcv_sw_males   <- dfs[[6]]
+hcv_sw_females <- dfs[[7]]
+hcv_msm        <- dfs[[8]]
 
 # save dataframes to excel
 file_path <- "C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/processed_data.xlsx"
