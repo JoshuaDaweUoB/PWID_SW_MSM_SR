@@ -238,3 +238,52 @@ sw_exposure_summary <- sw_all %>%
   select(disease, exposure_time_frame_bin, total_exposed, total, proportion_exposed)
 
 print(as.data.frame(sw_exposure_summary))
+
+# Helper function to summarise female counts for a given dataframe and disease label
+summarise_females <- function(df, disease_label) {
+  df %>%
+    filter(!is.na(exposure_time_frame_bin)) %>%
+    mutate(
+      female_num = as.numeric(female_num),
+      exposed_num = as.numeric(exposed_num),
+      unexposed_num = as.numeric(unexposed_num)
+    ) %>%
+    group_by(exposure_time_frame_bin) %>%
+    summarise(
+      total_female = sum(female_num, na.rm = TRUE),
+      total_participants = sum(exposed_num, na.rm = TRUE) + sum(unexposed_num, na.rm = TRUE),
+      proportion_female = total_female / total_participants
+    ) %>%
+    mutate(disease = disease_label) %>%
+    select(disease, exposure_time_frame_bin, total_female, total_participants, proportion_female)
+}
+
+# Get summaries for each disease
+female_summary_hiv <- summarise_females(hiv_sw_all, "hiv")
+female_summary_hcv <- summarise_females(hcv_sw_all, "hcv")
+
+# Overall summary (combine both datasets)
+female_summary_overall <- bind_rows(hiv_sw_all, hcv_sw_all) %>%
+  filter(!is.na(exposure_time_frame_bin)) %>%
+  mutate(
+    female_num = as.numeric(female_num),
+    exposed_num = as.numeric(exposed_num),
+    unexposed_num = as.numeric(unexposed_num)
+  ) %>%
+  group_by(exposure_time_frame_bin) %>%
+  summarise(
+    total_female = sum(female_num, na.rm = TRUE),
+    total_participants = sum(exposed_num, na.rm = TRUE) + sum(unexposed_num, na.rm = TRUE),
+    proportion_female = total_female / total_participants
+  ) %>%
+  mutate(disease = "Overall") %>%
+  select(disease, exposure_time_frame_bin, total_female, total_participants, proportion_female)
+
+# Combine all summaries
+female_summary <- bind_rows(
+  female_summary_hiv,
+  female_summary_hcv,
+  female_summary_overall
+)
+
+print(as.data.frame(female_summary))
