@@ -347,3 +347,113 @@ subgroup_analysis_recent_best <- function(df, exposure_time_frame, effect_col, l
     dev.off()
   }
 }
+
+# Function to conduct subgroup analyses for unadjusted estimates
+subgroup_analysis_recent_unadj <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
+  # Filter the dataframe for recent exposure time frame and non-missing unadjusted estimates
+  filtered_df <- df %>%
+    filter(exposure_time_frame_bin == "recent") %>%
+    filter(!is.na(effect_unadj_ln)) %>%
+    filter(effect_unadj_ln != "NR")
+  
+  # Loop through each subgroup variable
+  for (subgroup_var in subgroup_vars) {
+    # Filter out rows with missing values in the subgroup variable
+    subgroup_filtered_df <- filtered_df %>%
+      filter(!is.na(.data[[subgroup_var]]))
+    
+    # Generate the forest plot for the current subgroup
+    forest_plot <- metagen(
+      TE = subgroup_filtered_df$effect_unadj_ln,
+      lower = subgroup_filtered_df$effect_unadj_lb_ln,
+      upper = subgroup_filtered_df$effect_unadj_ub_ln,
+      studlab = subgroup_filtered_df[[studlab_col]],
+      data = subgroup_filtered_df,
+      sm = "RR",
+      method.tau = "DL",
+      common = FALSE,
+      random = TRUE,
+      backtransf = TRUE,
+      subgroup = subgroup_filtered_df[[subgroup_var]],
+      text.random = "Overall"
+    )
+    
+    # Construct the filename for the current subgroup plot
+    subgroup_filename <- gsub("\\.png$", paste0("_", subgroup_var, ".png"), base_filename)
+    
+    # Save the forest plot as a PNG
+    png(filename = subgroup_filename, width = 30, height = 20, units = "cm", res = 500)
+    forest(
+      forest_plot,
+      sortvar = subgroup_filtered_df[[studlab_col]],
+      xlim = c(0.2, 4),
+      leftcols = c("study", "country"),
+      leftlabs = c("Study", "Country"),
+      digits = 2,
+      digits.tau2 = 1,
+      digits.I2 = 1,
+      digits.pval.Q = 3,
+      col.inside = "black",
+      subgroup.name = "",
+      subgroup = TRUE,
+      print.byvar = FALSE,
+      col.subgroup = "black"
+    )
+    dev.off()
+  }
+}
+
+# Function to conduct subgroup analyses for recent adjusted estimates
+subgroup_analysis_recent_adj1 <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
+  # Filter the dataframe for recent exposure time frame and non-missing adjusted estimates
+  filtered_df <- df %>%
+    filter(exposure_time_frame_bin == "recent") %>%
+    filter(!is.na(effect_adj1_ln)) %>%
+    filter(effect_adj1_ln != "NR")
+  
+  # Loop through each subgroup variable
+  for (subgroup_var in subgroup_vars) {
+    # Filter out rows with missing values in the subgroup variable
+    subgroup_filtered_df <- filtered_df %>%
+      filter(!is.na(.data[[subgroup_var]]))
+    
+    # Generate the forest plot for the current subgroup
+    forest_plot <- metagen(
+      TE = subgroup_filtered_df$effect_adj1_ln,
+      lower = subgroup_filtered_df$effect_adj_lb1_ln,
+      upper = subgroup_filtered_df$effect_adj_ub1_ln,
+      studlab = subgroup_filtered_df[[studlab_col]],
+      data = subgroup_filtered_df,
+      sm = "RR",
+      method.tau = "DL",
+      common = FALSE,
+      random = TRUE,
+      backtransf = TRUE,
+      subgroup = subgroup_filtered_df[[subgroup_var]],
+      text.random = "Overall"
+    )
+    
+    # Construct the filename for the current subgroup plot
+    subgroup_filename <- gsub("\\.png$", paste0("_", subgroup_var, ".png"), base_filename)
+    
+    # Save the forest plot as a PNG
+    png(filename = subgroup_filename, width = 30, height = 20, units = "cm", res = 500)
+    forest(
+      forest_plot,
+      sortvar = subgroup_filtered_df[[studlab_col]],
+      xlim = c(0.2, 4),
+      leftcols = c("study", "country"),
+      leftlabs = c("Study", "Country"),
+      digits = 2,
+      digits.tau2 = 1,
+      digits.I2 = 1,
+      digits.pval.Q = 3,
+      col.inside = "black",
+      subgroup.name = "",
+      subgroup = TRUE,
+      print.byvar = FALSE,
+      col.subgroup = "black"
+    )
+    dev.off()
+  }
+}

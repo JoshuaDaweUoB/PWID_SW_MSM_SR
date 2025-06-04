@@ -171,20 +171,6 @@ recent_unadj_forest_plot_combined(
   filename_msm_combined
 )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # subgroup forest plots
 
 # recent best effect forest plots
@@ -194,3 +180,28 @@ for (i in 1:length(dfs)) {
   subgroup_analysis_recent_best(dfs[[i]], "recent", "effect_best_ln", "effect_best_lb_ln", "effect_best_ub_ln", "lead_author", subgroup_names, filename)
 }
 
+# recent unadjusted effect forest plots by subgroup
+for (i in 1:length(dfs)) {
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", rec_unadj[i])
+  print(filename)  # Print the filename to confirm
+  subgroup_analysis_recent_unadj(
+    dfs[[i]],
+    "recent",
+    "lead_author",
+    subgroup_names,
+    filename
+  )
+}
+
+# recent adjusted (structural factors) effect forest plots by subgroup
+for (i in 1:length(dfs)) {
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", rec_adj1[i])
+  print(filename)  # Print the filename to confirm
+  subgroup_analysis_recent_adj1(
+    dfs[[i]],
+    "recent",
+    "lead_author",
+    subgroup_names,
+    filename
+  )
+}
