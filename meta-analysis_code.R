@@ -233,3 +233,38 @@ for (i in 1:length(dfs)) {
     filename
   )
 }
+
+## meta regression 
+
+# Apply meta_regress_best_recent_hiv to each dataframe
+meta_regress_hiv_sw_all <- meta_regress_best_recent_hiv(hiv_sw_all)
+meta_regress_hiv_msm    <- meta_regress_best_recent_hiv(hiv_msm)
+meta_regress_hcv_sw_all <- meta_regress_best_recent_hiv(hcv_sw_all)
+meta_regress_hcv_msm    <- meta_regress_best_recent_hiv(hcv_msm)
+
+# Extract summaries
+meta_regress_hiv_sw_all_df <- extract_rma_summary(meta_regress_hiv_sw_all)
+meta_regress_hiv_msm_df    <- extract_rma_summary(meta_regress_hiv_msm)
+meta_regress_hcv_sw_all_df <- extract_rma_summary(meta_regress_hcv_sw_all)
+meta_regress_hcv_msm_df    <- extract_rma_summary(meta_regress_hcv_msm)
+
+# Exponentiate to get RRs and CIs
+meta_regress_hiv_sw_all_df <- meta_regress_hiv_sw_all_df %>%
+  mutate(RR = exp(estimate), RR_ci.lb = exp(ci.lb), RR_ci.ub = exp(ci.ub))
+meta_regress_hiv_msm_df <- meta_regress_hiv_msm_df %>%
+  mutate(RR = exp(estimate), RR_ci.lb = exp(ci.lb), RR_ci.ub = exp(ci.ub))
+meta_regress_hcv_sw_all_df <- meta_regress_hcv_sw_all_df %>%
+  mutate(RR = exp(estimate), RR_ci.lb = exp(ci.lb), RR_ci.ub = exp(ci.ub))
+meta_regress_hcv_msm_df <- meta_regress_hcv_msm_df %>%
+  mutate(RR = exp(estimate), RR_ci.lb = exp(ci.lb), RR_ci.ub = exp(ci.ub))
+
+# Write to Excel
+writexl::write_xlsx(
+  list(
+    hiv_sw_all = meta_regress_hiv_sw_all_df,
+    hiv_msm    = meta_regress_hiv_msm_df,
+    hcv_sw_all = meta_regress_hcv_sw_all_df,
+    hcv_msm    = meta_regress_hcv_msm_df
+  ),
+  path = "code/meta_regression_results.xlsx"
+)

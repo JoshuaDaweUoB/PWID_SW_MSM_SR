@@ -667,3 +667,88 @@ subgroup_analysis_recent_adj1 <- function(df, exposure_time_frame, studlab_col, 
     dev.off()
   }
 }
+
+## meta regression
+
+meta_regress_best_recent_hiv <- function(df) {
+  # Filter for recent sex work and HIV, and non-missing best estimates
+  filtered_df <- df %>%
+    filter(exposure_time_frame_bin == "recent") %>%
+    filter(!is.na(effect_best_ln)) %>%
+    filter(effect_best_ln != "NR")
+  
+  # Ensure variables are numeric
+  for (v in c("oat_perc", "homeless_perc", "prison_perc")) {
+    filtered_df[[v]] <- as.numeric(filtered_df[[v]])
+  }
+  
+  # Relevel oat_perc, homeless_perc, prison_perc to binary based on mean
+  for (v in c("oat_perc", "homeless_perc", "prison_perc")) {
+    avg <- mean(filtered_df[[v]], na.rm = TRUE)
+    filtered_df[[v]] <- ifelse(filtered_df[[v]] >= avg, 1, 0)
+  }
+
+  # List of variables to meta-regress
+  vars <- c("2016_bin", "exposure_time_frame_bin", "incidence_method", "age", "oat_perc", "homeless_perc", "prison_perc")
+  
+  # Store results in a named list
+  results <- list()
+  
+  for (v in vars) {
+    # Remove rows with missing values for the current variable
+    dat <- filtered_df %>% filter(!is.na(.data[[v]]))
+    # Only run if variable has at least 2 unique values
+    if (nrow(dat) > 2 && length(unique(dat[[v]])) > 1) {
+      res <- metafor::rma(
+        yi = dat$effect_best_ln,
+        sei = (dat$effect_best_ub_ln - dat$effect_best_lb_ln) / (2 * 1.96),
+        mods = ~ dat[[v]],
+        data = dat,
+        method = "DL"
+      )
+      results[[v]] <- res
+      print(paste("Meta-regression for", v))
+      print(summary(res))
+    } else {
+      results[[v]] <- NA
+      print(paste("Not enough data or only one level for", v))
+    }
+  }
+  return(results)
+}
+
+# Helper function to extract summary info from rma objects
+extract_rma_summary <- function(rma_list) {
+  purrr::map_dfr(names(rma_list), function(var) {
+    res <- rma_list[[var]]
+    if (inherits(res, "rma")) {
+      tibble::tibble(
+        variable = var,
+        estimate = res$beta[2, 1],
+        se = res$se[2],
+        zval = res$zval[2],
+        pval = res$pval[2],
+        ci.lb = res$ci.lb[2],
+        ci.ub = res$ci.ub[2],
+        tau2 = res$tau2,
+        I2 = res$I2
+      )
+    } else {
+      tibble::tibble(
+        variable = var,
+        estimate = NA_real_,
+        se = NA_real_,
+        zval = NA_real_,
+        pval = NA_real_,
+        ci.lb = NA_real_,
+        ci.ub = NA_real_,
+        tau2 = NA_real_,
+        I2 = NA_real_
+      )
+    }
+  })
+}
+
+## publication bias
+
+# Function to create a funnel plot for publication bias
