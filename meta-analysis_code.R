@@ -88,6 +88,34 @@ for (i in 1:length(dfs)) {
   recent_best_forest_plot(dfs[[i]], "recent", "effect_best_ln", "effect_best_lb_ln", "effect_best_ub_ln", "lead_author", "pub_status", filename)
 }
 
+# lifetime unadjusted forest plots
+for (i in 1:length(dfs)) {
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", gsub("recent", "lifetime", rec_unadj[i]))
+  print(filename)  # Print the filename to confirm
+  lifetime_unadj_forest_plot(dfs[[i]], "lifetime", "effect_unadj_ln", "effect_unadj_lb_ln", "effect_unadj_ub_ln", "lead_author", "pub_status", filename)
+}
+
+# lifetime adjusted forest plots - structural factors only
+for (i in 1:length(dfs)) {
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", gsub("recent", "lifetime", rec_adj1[i]))
+  print(filename)  # Print the filename to confirm
+  lifetime_adj1_forest_plot(dfs[[i]], "lifetime", "effect_adj1_ln", "effect_adj_lb1_ln", "effect_adj_ub1_ln", "lead_author", "pub_status", filename)
+}
+
+# lifetime adjusted forest plots - injecting risk factors
+for (i in 1:length(dfs)) {
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", gsub("recent", "lifetime", rec_adj2[i]))
+  print(filename)  # Print the filename to confirm
+  lifetime_adj2_forest_plot(dfs[[i]], "lifetime", "effect_adj2_ln", "effect_adj2_lb_ln", "effect_adj2_ub_ln", "lead_author", "pub_status", filename)
+}
+
+# lifetime best effect forest plots
+for (i in 1:length(dfs)) {
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", gsub("recent", "lifetime", rec_best[i]))
+  print(filename)  # Print the filename to confirm
+  lifetime_best_forest_plot(dfs[[i]], "lifetime", "effect_best_ln", "effect_best_lb_ln", "effect_best_ub_ln", "lead_author", "pub_status", filename)
+}
+
 # append dataframes to make three forest plots in one figure for HIV and HCV
 combine_and_convert <- function(dfs, idx, labels, desired_cols) {
   combined <- purrr::map2(dfs[idx], labels, ~ .x %>%

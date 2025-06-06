@@ -291,6 +291,216 @@ recent_best_forest_plot <- function(df, exposure_time_frame, effect_col, lower_c
   dev.off()
 }
 
+# lifetime unadjusted estimates
+lifetime_unadj_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
+  filtered_df <- df %>% 
+    filter(exposure_time_frame_bin == "lifetime") %>% 
+    filter(!is.na(moa_unadj))
+  
+  forest_plot <- metagen(TE = effect_unadj_ln,
+                         lower = effect_unadj_lb_ln,
+                         upper = effect_unadj_ub_ln,
+                         studlab = study,
+                         data = filtered_df,
+                         sm = "RR",
+                         method.tau = "DL",
+                         common = FALSE,
+                         random = TRUE, 
+                         backtransf = TRUE,
+                         subgroup = pub_status,
+                         text.random = "Overall")
+  summary(forest_plot)
+  
+  print(paste("Saving plot to:", filename))
+  png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
+  
+  forest_sw <- forest(forest_plot, 
+                      sortvar = study,
+                      xlim = c(0.2, 4),             
+                      leftcols = c("country", "cohort"), 
+                      leftlabs = c("Country", "Cohort"),
+                      digits = 2,
+                      digits.tau2 = 1,
+                      digits.I2 = 1,
+                      digits.pval.Q = 3,
+                      col.inside = "black",
+                      subgroup.name = "",
+                      subgroup = TRUE,
+                      print.byvar = FALSE,
+                      col.subgroup = "black") 
+  dev.off()
+}
+
+# lifetime unadjusted estimates (combined)
+lifetime_unadj_forest_plot_combined <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
+  filtered_df <- df %>% 
+    filter(exposure_time_frame_bin == "lifetime") %>% 
+    filter(!is.na(moa_unadj))
+  
+  forest_plot <- metagen(
+    TE = filtered_df[[effect_col]],
+    lower = filtered_df[[lower_col]],
+    upper = filtered_df[[upper_col]],
+    studlab = filtered_df[[studlab_col]],
+    data = filtered_df,
+    sm = "RR",
+    method.tau = "DL",
+    common = FALSE,
+    random = TRUE, 
+    backtransf = TRUE,
+    subgroup = filtered_df[[byvar_col]],
+    text.random = "Overall"
+  )
+  summary(forest_plot)
+  
+  print(paste("Saving plot to:", filename))
+  png(filename = filename, width = 35, height = 35, units = "cm", res = 500)
+  
+  forest_sw <- forest(
+    forest_plot, 
+    sortvar = study,
+    xlim = c(0.2, 4),             
+    leftcols = c("study", "cohort", "country", "pub_status"), 
+    leftlabs = c("Study", "Cohort", "Country", "Publication Status"),
+    digits = 2,
+    digits.tau2 = 1,
+    digits.I2 = 1,
+    digits.pval.Q = 3,
+    col.inside = "black",
+    subgroup.name = "",
+    subgroup = TRUE,
+    print.byvar = FALSE,
+    col.subgroup = "black",
+    overall = FALSE,
+    overall.hetstat = FALSE,
+    test.subgroup = FALSE
+  ) 
+  dev.off()
+}
+
+# lifetime adjusted estimates (structural factors)
+lifetime_adj1_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
+  filtered_df <- df %>% 
+    filter(exposure_time_frame_bin == "lifetime") %>% 
+    filter(!is.na(moa_adj1)) %>%
+    filter(moa_adj1 != "NR")
+  
+  forest_plot <- metagen(TE = effect_adj1_ln,
+                         lower = effect_adj_lb1_ln,
+                         upper = effect_adj_ub1_ln,
+                         studlab = study,
+                         data = filtered_df,
+                         sm = "RR",
+                         method.tau = "DL",
+                         common = FALSE,
+                         random = TRUE, 
+                         backtransf = TRUE,
+                         subgroup = pub_status,
+                         text.random = "Overall")
+  summary(forest_plot)
+  
+  print(paste("Saving plot to:", filename))
+  png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
+  
+  forest_sw <- forest(forest_plot, 
+                      sortvar = study,
+                      xlim = c(0.2, 4),             
+                      leftcols = c("country", "cohort"), 
+                      leftlabs = c("Country", "Cohort"),
+                      digits = 2,
+                      digits.tau2 = 1,
+                      digits.I2 = 1,
+                      digits.pval.Q = 3,
+                      col.inside = "black",
+                      subgroup.name = "",
+                      subgroup = TRUE,
+                      print.byvar = FALSE,
+                      col.subgroup = "black") 
+  dev.off()
+}
+
+# lifetime adjusted estimates (injecting risk factors)
+lifetime_adj2_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
+  filtered_df <- df %>% 
+    filter(exposure_time_frame_bin == "lifetime") %>% 
+    filter(!is.na(moa_adj2)) %>%
+    filter(moa_adj2 != "NR")
+  
+  forest_plot <- metagen(TE = effect_adj2_ln,
+                         lower = effect_adj_lb2_ln,
+                         upper = effect_adj_ub2_ln,
+                         studlab = study,
+                         data = filtered_df,
+                         sm = "RR",
+                         method.tau = "DL",
+                         common = FALSE,
+                         random = TRUE, 
+                         backtransf = TRUE,
+                         subgroup = pub_status,
+                         text.random = "Overall")
+  summary(forest_plot)
+  
+  print(paste("Saving plot to:", filename))
+  png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
+  
+  forest_sw <- forest(forest_plot, 
+                      sortvar = study,
+                      xlim = c(0.2, 4),             
+                      leftcols = c("country", "cohort"), 
+                      leftlabs = c("Country", "Cohort"),
+                      digits = 2,
+                      digits.tau2 = 1,
+                      digits.I2 = 1,
+                      digits.pval.Q = 3,
+                      col.inside = "black",
+                      subgroup.name = "",
+                      subgroup = TRUE,
+                      print.byvar = FALSE,
+                      col.subgroup = "black") 
+  dev.off()
+}
+
+# lifetime best estimates
+lifetime_best_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
+  filtered_df <- df %>% 
+    filter(exposure_time_frame_bin == "lifetime") %>% 
+    filter(!is.na(effect_best)) %>%
+    filter(effect_best != "NR")
+  
+  forest_plot <- metagen(TE = effect_best_ln,
+                         lower = effect_best_lb_ln,
+                         upper = effect_best_ub_ln,
+                         studlab = study,
+                         data = filtered_df,
+                         sm = "RR",
+                         method.tau = "DL",
+                         common = FALSE,
+                         random = TRUE, 
+                         backtransf = TRUE,
+                         subgroup = pub_status,
+                         text.random = "Overall")
+  summary(forest_plot)
+  
+  print(paste("Saving plot to:", filename))
+  png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
+  
+  forest_sw <- forest(forest_plot, 
+                      sortvar = study,
+                      xlim = c(0.2, 4),             
+                      leftcols = c("country", "cohort"), 
+                      leftlabs = c("Country", "Cohort"),
+                      digits = 2,
+                      digits.tau2 = 1,
+                      digits.I2 = 1,
+                      digits.pval.Q = 3,
+                      col.inside = "black",
+                      subgroup.name = "",
+                      subgroup = TRUE,
+                      print.byvar = FALSE,
+                      col.subgroup = "black") 
+  dev.off()
+}
+
 # subgroup analysis of recent best estimates
 
 # Function to conduct subgroup analyses
