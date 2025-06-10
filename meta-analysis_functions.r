@@ -63,6 +63,17 @@ log_transform <- function(df) {
   return(df)
 }
 
+## replace adj1 with adj2 if missing
+replace_adj1_with_adj2_if_missing <- function(df) {
+  df <- df %>%
+    mutate(
+      effect_adj1 = ifelse(is.na(effect_adj1), effect_adj2, effect_adj1),
+      effect_adj_lb1 = ifelse(is.na(effect_adj_lb1), effect_adj_lb2, effect_adj_lb1),
+      effect_adj_ub1 = ifelse(is.na(effect_adj_ub1), effect_adj_ub2, effect_adj_ub1)
+    )
+  return(df)
+}
+
 # keep studies where use equals "yes"
 filter_use_yes <- function(df) {
   df <- df %>%
@@ -295,7 +306,8 @@ recent_best_forest_plot <- function(df, exposure_time_frame, effect_col, lower_c
 lifetime_unadj_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
   filtered_df <- df %>% 
     filter(exposure_time_frame_bin == "lifetime") %>% 
-    filter(!is.na(moa_unadj))
+    filter(!is.na(moa_unadj))%>%
+    filter(moa_unadj != "NR")
   
   forest_plot <- metagen(TE = effect_unadj_ln,
                          lower = effect_unadj_lb_ln,
@@ -317,8 +329,8 @@ lifetime_unadj_forest_plot <- function(df, exposure_time_frame, effect_col, lowe
   forest_sw <- forest(forest_plot, 
                       sortvar = study,
                       xlim = c(0.2, 4),             
-                      leftcols = c("country", "cohort"), 
-                      leftlabs = c("Country", "Cohort"),
+                      leftcols = c("study", "cohort", "country"),
+                      leftlabs = c("Study", "Cohort", "Country"),
                       digits = 2,
                       digits.tau2 = 1,
                       digits.I2 = 1,
@@ -405,8 +417,8 @@ lifetime_adj1_forest_plot <- function(df, exposure_time_frame, effect_col, lower
   forest_sw <- forest(forest_plot, 
                       sortvar = study,
                       xlim = c(0.2, 4),             
-                      leftcols = c("country", "cohort"), 
-                      leftlabs = c("Country", "Cohort"),
+                      leftcols = c("study", "cohort", "country"),
+                      leftlabs = c("Study", "Cohort", "Country"),
                       digits = 2,
                       digits.tau2 = 1,
                       digits.I2 = 1,
@@ -670,34 +682,36 @@ subgroup_analysis_recent_adj1 <- function(df, exposure_time_frame, studlab_col, 
 
 ## meta regression
 
-meta_regress_best_recent_hiv <- function(df) {
-  # Filter for recent sex work and HIV, and non-missing best estimates
+meta_regress_best_recent_univariate <- function(df) {
+  # Filter for recent, non-missing, and valid best estimates
   filtered_df <- df %>%
     filter(exposure_time_frame_bin == "recent") %>%
     filter(!is.na(effect_best_ln)) %>%
     filter(effect_best_ln != "NR")
   
-  # Ensure variables are numeric
-  for (v in c("oat_perc", "homeless_perc", "prison_perc")) {
+  # Ensure variables are numeric where appropriate
+  for (v in c("oat_perc", "homeless_perc", "prison_perc", "age", "inj_age_num")) {
     filtered_df[[v]] <- as.numeric(filtered_df[[v]])
   }
+  filtered_df$inj_age_num <- readr::parse_number(filtered_df$inj_age)
   
-  # Relevel oat_perc, homeless_perc, prison_perc to binary based on mean
-  for (v in c("oat_perc", "homeless_perc", "prison_perc")) {
-    avg <- mean(filtered_df[[v]], na.rm = TRUE)
-    filtered_df[[v]] <- ifelse(filtered_df[[v]] >= avg, 1, 0)
+  # Relevel to binary based on median
+  for (v in c("oat_perc", "homeless_perc", "prison_perc", "age", "inj_age_num")) {
+    med <- median(filtered_df[[v]], na.rm = TRUE)
+    filtered_df[[v]] <- ifelse(filtered_df[[v]] >= med, 1, 0)
   }
-
+  
   # List of variables to meta-regress
-  vars <- c("2016_bin", "exposure_time_frame_bin", "incidence_method", "age", "oat_perc", "homeless_perc", "prison_perc")
+  vars <- c(
+    "2016_bin", "incidence_method", "age", "inj_age_num", "oat_perc",
+    "homeless_perc", "prison_perc", "lmic_bin", "rob_3cat", "pub_status"
+  )
   
   # Store results in a named list
   results <- list()
   
   for (v in vars) {
-    # Remove rows with missing values for the current variable
     dat <- filtered_df %>% filter(!is.na(.data[[v]]))
-    # Only run if variable has at least 2 unique values
     if (nrow(dat) > 2 && length(unique(dat[[v]])) > 1) {
       res <- metafor::rma(
         yi = dat$effect_best_ln,
@@ -707,48 +721,168 @@ meta_regress_best_recent_hiv <- function(df) {
         method = "DL"
       )
       results[[v]] <- res
-      print(paste("Meta-regression for", v))
-      print(summary(res))
     } else {
       results[[v]] <- NA
-      print(paste("Not enough data or only one level for", v))
     }
   }
   return(results)
 }
 
-# Helper function to extract summary info from rma objects
-extract_rma_summary <- function(rma_list) {
-  purrr::map_dfr(names(rma_list), function(var) {
-    res <- rma_list[[var]]
-    if (inherits(res, "rma")) {
-      tibble::tibble(
-        variable = var,
-        estimate = res$beta[2, 1],
-        se = res$se[2],
-        zval = res$zval[2],
-        pval = res$pval[2],
-        ci.lb = res$ci.lb[2],
-        ci.ub = res$ci.ub[2],
-        tau2 = res$tau2,
-        I2 = res$I2
-      )
+meta_regress_strata_summary <- function(df) {
+  filtered_df <- df %>%
+    filter(exposure_time_frame_bin == "recent") %>%
+    filter(!is.na(effect_best_ln)) %>%
+    filter(effect_best_ln != "NR")
+
+  filtered_df$inj_age_num <- suppressWarnings(readr::parse_number(filtered_df$inj_age))
+
+  continuous_vars <- c("age", "inj_age_num", "oat_perc", "homeless_perc", "prison_perc")
+  categorical_vars <- c("2016_bin", "incidence_method", "lmic_bin", "rob_3cat", "pub_status")
+  vars <- c(categorical_vars, continuous_vars)
+
+  # Dichotomize continuous variables by median
+  for (v in continuous_vars) {
+    if (v %in% names(filtered_df)) {
+      filtered_df[[v]] <- as.numeric(filtered_df[[v]])
+      med <- median(filtered_df[[v]], na.rm = TRUE)
+      filtered_df[[v]] <- ifelse(filtered_df[[v]] >= med, 1, 0)
+    }
+  }
+
+  # For categorical variables, convert to factor and then to 0/1 if binary
+  levels_used <- list()
+  for (v in categorical_vars) {
+    if (v %in% names(filtered_df)) {
+      filtered_df[[v]] <- as.factor(filtered_df[[v]])
+      lvls <- levels(droplevels(filtered_df[[v]]))
+      levels_used[[v]] <- paste(lvls, collapse = ";")
+      if (length(lvls) == 2) {
+        filtered_df[[v]] <- as.numeric(filtered_df[[v]]) - 1  # 0/1 coding
+      } else {
+        filtered_df[[v]] <- NA
+      }
+    }
+  }
+
+  results <- list()
+
+  for (v in vars) {
+    if (!(v %in% names(filtered_df))) next
+    dat <- filtered_df %>% filter(!is.na(.data[[v]]))
+    lvls <- if (v %in% names(levels_used)) levels_used[[v]] else NA_character_
+    if (nrow(dat) > 2 && length(unique(dat[[v]])) > 1) {
+      dat0 <- dat %>% filter(.data[[v]] == 0)
+      dat1 <- dat %>% filter(.data[[v]] == 1)
+      if (nrow(dat0) > 1 && nrow(dat1) > 1) {
+        res0 <- tryCatch(
+          metafor::rma(
+            yi = effect_best_ln,
+            sei = (effect_best_ub_ln - effect_best_lb_ln) / (2 * 1.96),
+            data = dat0,
+            method = "DL"
+          ),
+          error = function(e) NULL
+        )
+        res1 <- tryCatch(
+          metafor::rma(
+            yi = effect_best_ln,
+            sei = (effect_best_ub_ln - effect_best_lb_ln) / (2 * 1.96),
+            data = dat1,
+            method = "DL"
+          ),
+          error = function(e) NULL
+        )
+        logRR0 <- if (!is.null(res0)) res0$b[1,1] else NA
+        logRR1 <- if (!is.null(res1)) res1$b[1,1] else NA
+        se0 <- if (!is.null(res0)) res0$se[1] else NA
+        se1 <- if (!is.null(res1)) res1$se[1] else NA
+
+        RR0 <- if (!is.null(res0)) exp(logRR0) else NA
+        RR0_lb <- if (!is.null(res0)) exp(res0$ci.lb) else NA
+        RR0_ub <- if (!is.null(res0)) exp(res0$ci.ub) else NA
+        RR1 <- if (!is.null(res1)) exp(logRR1) else NA
+        RR1_lb <- if (!is.null(res1)) exp(res1$ci.lb) else NA
+        RR1_ub <- if (!is.null(res1)) exp(res1$ci.ub) else NA
+
+        logRR_ratio <- if (!is.na(logRR0) && !is.na(logRR1)) logRR1 - logRR0 else NA
+        se_logRR_ratio <- if (!is.na(se0) && !is.na(se1)) sqrt(se0^2 + se1^2) else NA
+        RR_ratio <- if (!is.na(logRR_ratio)) exp(logRR_ratio) else NA
+        RR_ratio_lb <- if (!is.na(logRR_ratio) && !is.na(se_logRR_ratio)) exp(logRR_ratio - 1.96 * se_logRR_ratio) else NA
+        RR_ratio_ub <- if (!is.na(logRR_ratio) && !is.na(se_logRR_ratio)) exp(logRR_ratio + 1.96 * se_logRR_ratio) else NA
+
+        results[[v]] <- tibble::tibble(
+          variable = v,
+          levels_used = lvls,
+          RR_stratum0 = RR0,
+          RR_stratum0_lb = RR0_lb,
+          RR_stratum0_ub = RR0_ub,
+          RR_stratum1 = RR1,
+          RR_stratum1_lb = RR1_lb,
+          RR_stratum1_ub = RR1_ub,
+          RR_ratio = RR_ratio,
+          RR_ratio_lb = RR_ratio_lb,
+          RR_ratio_ub = RR_ratio_ub,
+          RR_estimates0 = nrow(dat0),
+          RR_estimates1 = nrow(dat1)
+        )
+      } else {
+        results[[v]] <- tibble::tibble(
+          variable = v,
+          levels_used = lvls,
+          RR_stratum0 = NA_real_,
+          RR_stratum0_lb = NA_real_,
+          RR_stratum0_ub = NA_real_,
+          RR_stratum1 = NA_real_,
+          RR_stratum1_lb = NA_real_,
+          RR_stratum1_ub = NA_real_,
+          RR_ratio = NA_real_,
+          RR_ratio_lb = NA_real_,
+          RR_ratio_ub = NA_real_,
+          RR_estimates0 = nrow(dat0),
+          RR_estimates1 = nrow(dat1)
+        )
+      }
     } else {
-      tibble::tibble(
-        variable = var,
-        estimate = NA_real_,
-        se = NA_real_,
-        zval = NA_real_,
-        pval = NA_real_,
-        ci.lb = NA_real_,
-        ci.ub = NA_real_,
-        tau2 = NA_real_,
-        I2 = NA_real_
+      results[[v]] <- tibble::tibble(
+        variable = v,
+        levels_used = lvls,
+        RR_stratum0 = NA_real_,
+        RR_stratum0_lb = NA_real_,
+        RR_stratum0_ub = NA_real_,
+        RR_stratum1 = NA_real_,
+        RR_stratum1_lb = NA_real_,
+        RR_stratum1_ub = NA_real_,
+        RR_ratio = NA_real_,
+        RR_ratio_lb = NA_real_,
+        RR_ratio_ub = NA_real_,
+        RR_estimates0 = NA_integer_,
+        RR_estimates1 = NA_integer_
       )
     }
-  })
+  }
+  dplyr::bind_rows(results)
 }
 
 ## publication bias
 
-# Function to create a funnel plot for publication bias
+test_publication_bias <- function(df, yi_col, sei_col, plot_filename = NULL) {
+  # Remove rows with missing values
+  df <- df %>% filter(!is.na(.data[[yi_col]]), !is.na(.data[[sei_col]]))
+  
+  # Fit random-effects model
+  res <- metafor::rma(yi = df[[yi_col]], sei = df[[sei_col]], method = "DL")
+  
+  # Funnel plot
+  if (!is.null(plot_filename)) {
+    png(plot_filename, width = 1200, height = 900, res = 150)
+    metafor::funnel(res, main = "Funnel plot")
+    dev.off()
+  } else {
+    metafor::funnel(res, main = "Funnel plot")
+  }
+  
+  # Egger's test
+  egger <- metafor::regtest(res, model = "rma", predictor = "sei")
+  print(egger)
+  return(egger)
+}

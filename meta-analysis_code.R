@@ -30,6 +30,18 @@ rec_best_subgroup <- c("recent_hiv_all_best_subgroup.png", "recent_hiv_males_bes
 
 # data cleaning
 
+# Apply replace_adj1_with_adj2_if_missing to each dataframe in dfs
+dfs <- purrr::map(dfs, replace_adj1_with_adj2_if_missing)
+
+hiv_sw_all     <- dfs[[1]]
+hiv_sw_males   <- dfs[[2]]
+hiv_sw_females <- dfs[[3]]
+hiv_msm        <- dfs[[4]]
+hcv_sw_all     <- dfs[[5]]
+hcv_sw_males   <- dfs[[6]]
+hcv_sw_females <- dfs[[7]]
+hcv_msm        <- dfs[[8]]
+
 # convert to numeric and log transform
 for (i in 1:length(dfs)) {
   df <- dfs[[i]]
@@ -236,35 +248,211 @@ for (i in 1:length(dfs)) {
 
 ## meta regression 
 
-# Apply meta_regress_best_recent_hiv to each dataframe
-meta_regress_hiv_sw_all <- meta_regress_best_recent_hiv(hiv_sw_all)
-meta_regress_hiv_msm    <- meta_regress_best_recent_hiv(hiv_msm)
-meta_regress_hcv_sw_all <- meta_regress_best_recent_hiv(hcv_sw_all)
-meta_regress_hcv_msm    <- meta_regress_best_recent_hiv(hcv_msm)
-
-# Extract summaries
-meta_regress_hiv_sw_all_df <- extract_rma_summary(meta_regress_hiv_sw_all)
-meta_regress_hiv_msm_df    <- extract_rma_summary(meta_regress_hiv_msm)
-meta_regress_hcv_sw_all_df <- extract_rma_summary(meta_regress_hcv_sw_all)
-meta_regress_hcv_msm_df    <- extract_rma_summary(meta_regress_hcv_msm)
-
-# Exponentiate to get RRs and CIs
-meta_regress_hiv_sw_all_df <- meta_regress_hiv_sw_all_df %>%
-  mutate(RR = exp(estimate), RR_ci.lb = exp(ci.lb), RR_ci.ub = exp(ci.ub))
-meta_regress_hiv_msm_df <- meta_regress_hiv_msm_df %>%
-  mutate(RR = exp(estimate), RR_ci.lb = exp(ci.lb), RR_ci.ub = exp(ci.ub))
-meta_regress_hcv_sw_all_df <- meta_regress_hcv_sw_all_df %>%
-  mutate(RR = exp(estimate), RR_ci.lb = exp(ci.lb), RR_ci.ub = exp(ci.ub))
-meta_regress_hcv_msm_df <- meta_regress_hcv_msm_df %>%
-  mutate(RR = exp(estimate), RR_ci.lb = exp(ci.lb), RR_ci.ub = exp(ci.ub))
+# Apply strata summary meta-regression to each dataframe
+meta_regress_hiv_sw_all_strata     <- meta_regress_strata_summary(hiv_sw_all)
+meta_regress_hiv_sw_males_strata   <- meta_regress_strata_summary(hiv_sw_males)
+meta_regress_hiv_sw_females_strata <- meta_regress_strata_summary(hiv_sw_females)
+meta_regress_hiv_msm_strata        <- meta_regress_strata_summary(hiv_msm)
+meta_regress_hcv_sw_all_strata     <- meta_regress_strata_summary(hcv_sw_all)
+meta_regress_hcv_sw_males_strata   <- meta_regress_strata_summary(hcv_sw_males)
+meta_regress_hcv_sw_females_strata <- meta_regress_strata_summary(hcv_sw_females)
+meta_regress_hcv_msm_strata        <- meta_regress_strata_summary(hcv_msm)
 
 # Write to Excel
 writexl::write_xlsx(
   list(
-    hiv_sw_all = meta_regress_hiv_sw_all_df,
-    hiv_msm    = meta_regress_hiv_msm_df,
-    hcv_sw_all = meta_regress_hcv_sw_all_df,
-    hcv_msm    = meta_regress_hcv_msm_df
+    hiv_sw_all     = meta_regress_hiv_sw_all_strata,
+    hiv_sw_males   = meta_regress_hiv_sw_males_strata,
+    hiv_sw_females = meta_regress_hiv_sw_females_strata,
+    hiv_msm        = meta_regress_hiv_msm_strata,
+    hcv_sw_all     = meta_regress_hcv_sw_all_strata,
+    hcv_sw_males   = meta_regress_hcv_sw_males_strata,
+    hcv_sw_females = meta_regress_hcv_sw_females_strata,
+    hcv_msm        = meta_regress_hcv_msm_strata
   ),
-  path = "code/meta_regression_results.xlsx"
+  path = "code/meta_regression_strata_summary.xlsx"
 )
+
+## publication bias
+
+# Publication bias tests for each dataframe
+# Add effect_best_se to each dataframe
+for (df_name in c("hiv_sw_all", "hiv_sw_males", "hiv_sw_females", "hiv_msm",
+                  "hcv_sw_all", "hcv_sw_males", "hcv_sw_females", "hcv_msm")) {
+  df <- get(df_name)
+  df$effect_best_se <- (df$effect_best_ub_ln - df$effect_best_lb_ln) / (2 * 1.96)
+  assign(df_name, df, envir = .GlobalEnv)
+}
+
+test_publication_bias(
+  hiv_sw_all %>% filter(exposure_time_frame_bin == "recent"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_all.png"
+)
+
+test_publication_bias(
+  hiv_sw_males %>% filter(exposure_time_frame_bin == "recent"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_males.png"
+)
+
+test_publication_bias(
+  hiv_sw_females %>% filter(exposure_time_frame_bin == "recent"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_females.png"
+)
+
+test_publication_bias(
+  hiv_msm %>% filter(exposure_time_frame_bin == "recent"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_msm.png"
+)
+
+test_publication_bias(
+  hcv_sw_all %>% filter(exposure_time_frame_bin == "recent"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_all.png"
+)
+
+test_publication_bias(
+  hcv_sw_males %>% filter(exposure_time_frame_bin == "recent"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_males.png"
+)
+
+test_publication_bias(
+  hcv_sw_females %>% filter(exposure_time_frame_bin == "recent"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_females.png"
+)
+
+test_publication_bias(
+  hcv_msm %>% filter(exposure_time_frame_bin == "recent"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_msm.png"
+)
+
+# Create a list of filtered dataframes and plot titles
+funnel_dfs <- list(
+  hiv_sw_all     = hiv_sw_all %>% filter(exposure_time_frame_bin == "recent"),
+  hiv_sw_males   = hiv_sw_males %>% filter(exposure_time_frame_bin == "recent"),
+  hiv_sw_females = hiv_sw_females %>% filter(exposure_time_frame_bin == "recent"),
+  hiv_msm        = hiv_msm %>% filter(exposure_time_frame_bin == "recent"),
+  hcv_sw_all     = hcv_sw_all %>% filter(exposure_time_frame_bin == "recent"),
+  hcv_sw_males   = hcv_sw_males %>% filter(exposure_time_frame_bin == "recent"),
+  hcv_sw_females = hcv_sw_females %>% filter(exposure_time_frame_bin == "recent"),
+  hcv_msm        = hcv_msm %>% filter(exposure_time_frame_bin == "recent")
+)
+titles <- c(
+  "HIV SW All", "HIV SW Males", "HIV SW Females", "HIV MSM",
+  "HCV SW All", "HCV SW Males", "HCV SW Females", "HCV MSM"
+)
+
+# Open a PNG device for a 2x4 grid
+png("code/plots/publication bias/funnel_combined.png", width = 2400, height = 1200, res = 200)
+par(mfrow = c(2, 4), oma = c(0, 0, 2, 0)) # 2 rows, 4 columns
+
+for (i in seq_along(funnel_dfs)) {
+  df <- funnel_dfs[[i]]
+  # Fit meta-analysis model
+  res <- metafor::rma(yi = df$effect_best_ln, sei = df$effect_best_se, method = "DL")
+  metafor::funnel(res, main = titles[i])
+}
+
+mtext("Funnel Plots for Publication Bias (Recent Estimates)", outer = TRUE, cex = 1.5)
+dev.off()
+
+# Publication bias tests for each dataframe (lifetime)
+test_publication_bias(
+  hiv_sw_all %>% filter(exposure_time_frame_bin == "lifetime"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_all_lifetime.png"
+)
+
+test_publication_bias(
+  hiv_sw_males %>% filter(exposure_time_frame_bin == "lifetime"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_males_lifetime.png"
+)
+
+test_publication_bias(
+  hiv_sw_females %>% filter(exposure_time_frame_bin == "lifetime"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_females_lifetime.png"
+)
+
+test_publication_bias(
+  hiv_msm %>% filter(exposure_time_frame_bin == "lifetime"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_msm_lifetime.png"
+)
+
+test_publication_bias(
+  hcv_sw_all %>% filter(exposure_time_frame_bin == "lifetime"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_all_lifetime.png"
+)
+
+test_publication_bias(
+  hcv_sw_males %>% filter(exposure_time_frame_bin == "lifetime"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_males_lifetime.png"
+)
+
+test_publication_bias(
+  hcv_sw_females %>% filter(exposure_time_frame_bin == "lifetime"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_females_lifetime.png"
+)
+
+test_publication_bias(
+  hcv_msm %>% filter(exposure_time_frame_bin == "lifetime"),
+  yi_col = "effect_best_ln",
+  sei_col = "effect_best_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_msm_lifetime.png"
+)
+
+# Create a list of filtered dataframes and plot titles for lifetime
+funnel_dfs_lifetime <- list(
+  hiv_sw_all     = hiv_sw_all %>% filter(exposure_time_frame_bin == "lifetime"),
+  hiv_sw_males   = hiv_sw_males %>% filter(exposure_time_frame_bin == "lifetime"),
+  hiv_sw_females = hiv_sw_females %>% filter(exposure_time_frame_bin == "lifetime"),
+  hiv_msm        = hiv_msm %>% filter(exposure_time_frame_bin == "lifetime"),
+  hcv_sw_all     = hcv_sw_all %>% filter(exposure_time_frame_bin == "lifetime"),
+  hcv_sw_males   = hcv_sw_males %>% filter(exposure_time_frame_bin == "lifetime"),
+  hcv_sw_females = hcv_sw_females %>% filter(exposure_time_frame_bin == "lifetime"),
+  hcv_msm        = hcv_msm %>% filter(exposure_time_frame_bin == "lifetime")
+)
+titles_lifetime <- c(
+  "HIV SW All", "HIV SW Males", "HIV SW Females", "HIV MSM",
+  "HCV SW All", "HCV SW Males", "HCV SW Females", "HCV MSM"
+)
+
+# Open a PNG device for a 2x4 grid for lifetime
+png("code/plots/publication bias/funnel_combined_lifetime.png", width = 2400, height = 1200, res = 200)
+par(mfrow = c(2, 4), oma = c(0, 0, 2, 0)) # 2 rows, 4 columns
+
+for (i in seq_along(funnel_dfs_lifetime)) {
+  df <- funnel_dfs_lifetime[[i]]
+  # Fit meta-analysis model
+  res <- metafor::rma(yi = df$effect_best_ln, sei = df$effect_best_se, method = "DL")
+  metafor::funnel(res, main = titles_lifetime[i])
+}
+
+mtext("Funnel Plots for Publication Bias (Lifetime Estimates)", outer = TRUE, cex = 1.5)
+dev.off()
