@@ -246,7 +246,7 @@ for (i in 1:length(dfs)) {
   )
 }
 
-## meta regression 
+## meta regression
 
 # Apply strata summary meta-regression to each dataframe
 meta_regress_hiv_sw_all_strata     <- meta_regress_strata_summary(hiv_sw_all)

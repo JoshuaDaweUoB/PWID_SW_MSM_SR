@@ -684,20 +684,23 @@ subgroup_analysis_recent_adj1 <- function(df, exposure_time_frame, studlab_col, 
 
 meta_regress_strata_summary <- function(df) {
   filtered_df <- df %>%
+    filter(use == "yes") %>%
     filter(exposure_time_frame_bin == "recent") %>%
     filter(!is.na(effect_best_ln)) %>%
     filter(effect_best_ln != "NR")
 
   filtered_df$inj_age_num <- suppressWarnings(readr::parse_number(filtered_df$inj_age))
 
-  # Create binary rob_3cat variables using "Good" as the comparator
+  # Ensure "Good" group is identical for rob_3cat1 and rob_3cat2
   if ("rob_3cat" %in% names(filtered_df)) {
-    filtered_df$rob_3cat1 <- NA_integer_
-    filtered_df$rob_3cat2 <- NA_integer_
-    filtered_df$rob_3cat1[filtered_df$rob_3cat %in% c("Good", "Satisfactory")] <-
-      ifelse(filtered_df$rob_3cat[filtered_df$rob_3cat %in% c("Good", "Satisfactory")] == "Satisfactory", 1, 0)
-    filtered_df$rob_3cat2[filtered_df$rob_3cat %in% c("Good", "Very good")] <-
-      ifelse(filtered_df$rob_3cat[filtered_df$rob_3cat %in% c("Good", "Very good")] == "Very good", 1, 0)
+    idx <- filtered_df$rob_3cat %in% c("Good", "Satisfactory", "Very good")
+    filtered_df <- filtered_df[idx, , drop = FALSE]
+    # rob_3cat1: Good vs Satisfactory
+    filtered_df$rob_3cat1 <- ifelse(filtered_df$rob_3cat == "Satisfactory", 1,
+                                    ifelse(filtered_df$rob_3cat == "Good", 0, NA))
+    # rob_3cat2: Good vs Very good
+    filtered_df$rob_3cat2 <- ifelse(filtered_df$rob_3cat == "Very good", 1,
+                                    ifelse(filtered_df$rob_3cat == "Good", 0, NA))
   }
 
   continuous_vars <- c("age", "inj_age_num", "oat_perc", "homeless_perc", "prison_perc")
@@ -759,6 +762,12 @@ meta_regress_strata_summary <- function(df) {
       RR0 <- if (!is.null(res_mod)) exp(logRR0) else NA
       RR1 <- if (!is.null(res_mod) && length(res_mod$b) > 1) exp(logRR1) else NA
 
+      # 95% CI for RR_stratum0 and RR_stratum1
+      RR0_lb <- if (!is.null(res_mod)) exp(res_mod$ci.lb[1]) else NA
+      RR0_ub <- if (!is.null(res_mod)) exp(res_mod$ci.ub[1]) else NA
+      RR1_lb <- if (!is.null(res_mod) && length(res_mod$ci.lb) > 1) exp(res_mod$ci.lb[1] + res_mod$ci.lb[2]) else NA
+      RR1_ub <- if (!is.null(res_mod) && length(res_mod$ci.ub) > 1) exp(res_mod$ci.ub[1] + res_mod$ci.ub[2]) else NA
+
       # Ratio of ratios
       logRR_ratio <- if (!is.null(res_mod) && length(res_mod$b) > 1) as.numeric(res_mod$b[2]) else NA
       se_logRR_ratio <- if (!is.null(res_mod) && length(res_mod$vb) > 1) sqrt(res_mod$vb[2,2]) else NA
@@ -774,7 +783,11 @@ meta_regress_strata_summary <- function(df) {
         levels_used = lvls,
         median_cutoff = med_cutoff,
         RR_stratum0 = RR0,
+        RR_stratum0_lb = RR0_lb,
+        RR_stratum0_ub = RR0_ub,
         RR_stratum1 = RR1,
+        RR_stratum1_lb = RR1_lb,
+        RR_stratum1_ub = RR1_ub,
         RR_ratio = RR_ratio,
         RR_ratio_lb = RR_ratio_lb,
         RR_ratio_ub = RR_ratio_ub,
@@ -789,7 +802,11 @@ meta_regress_strata_summary <- function(df) {
         levels_used = lvls,
         median_cutoff = med_cutoff,
         RR_stratum0 = NA_real_,
+        RR_stratum0_lb = NA_real_,
+        RR_stratum0_ub = NA_real_,
         RR_stratum1 = NA_real_,
+        RR_stratum1_lb = NA_real_,
+        RR_stratum1_ub = NA_real_,
         RR_ratio = NA_real_,
         RR_ratio_lb = NA_real_,
         RR_ratio_ub = NA_real_,
