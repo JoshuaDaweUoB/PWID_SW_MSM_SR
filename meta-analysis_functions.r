@@ -116,7 +116,7 @@ recent_unadj_forest_plot <- function(df, exposure_time_frame, effect_col, lower_
   png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
   
   forest_sw <- forest(forest_plot, 
-                      sortvar = study,
+                      sortvar = country,
                       xlim = c(0.2, 4),             
                       leftcols = c("study", "cohort", "country"),
                       leftlabs = c("Study", "Cohort", "Country"),
@@ -159,7 +159,7 @@ recent_unadj_forest_plot_combined <- function(df, exposure_time_frame, effect_co
   
   forest_sw <- forest(
     forest_plot, 
-    sortvar = study,
+    sortvar = country,
     xlim = c(0.2, 4),             
     leftcols = c("study", "cohort", "country"),
     leftlabs = c("Study", "Cohort", "Country"),
@@ -204,7 +204,7 @@ recent_adj1_forest_plot <- function(df, exposure_time_frame, effect_col, lower_c
   png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
   
   forest_sw <- forest(forest_plot, 
-                      sortvar = study,
+                      sortvar = country,
                       xlim = c(0.2, 4),             
                       leftcols = c("study", "cohort", "country"),
                       leftlabs = c("Study", "Cohort", "Country"),
@@ -245,7 +245,7 @@ recent_adj2_forest_plot <- function(df, exposure_time_frame, effect_col, lower_c
   png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
   
   forest_sw <- forest(forest_plot, 
-                      sortvar = study,
+                      sortvar = country,
                       xlim = c(0.2, 4),             
                       leftcols = c("study", "cohort", "country"),
                       leftlabs = c("Study", "Cohort", "Country"),
@@ -286,7 +286,7 @@ recent_best_forest_plot <- function(df, exposure_time_frame, effect_col, lower_c
   png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
   
   forest_sw <- forest(forest_plot, 
-                      sortvar = study,
+                      sortvar = country,
                       xlim = c(0.2, 4),             
                       leftcols = c("study", "cohort", "country"),
                       leftlabs = c("Study", "Cohort", "Country"),
@@ -327,7 +327,7 @@ lifetime_unadj_forest_plot <- function(df, exposure_time_frame, effect_col, lowe
   png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
   
   forest_sw <- forest(forest_plot, 
-                      sortvar = study,
+                      sortvar = country,
                       xlim = c(0.2, 4),             
                       leftcols = c("study", "cohort", "country"),
                       leftlabs = c("Study", "Cohort", "Country"),
@@ -370,7 +370,7 @@ lifetime_unadj_forest_plot_combined <- function(df, exposure_time_frame, effect_
   
   forest_sw <- forest(
     forest_plot, 
-    sortvar = study,
+    sortvar = country,
     xlim = c(0.2, 4),             
     leftcols = c("study", "cohort", "country", "pub_status"), 
     leftlabs = c("Study", "Cohort", "Country", "Publication Status"),
@@ -415,7 +415,7 @@ lifetime_adj1_forest_plot <- function(df, exposure_time_frame, effect_col, lower
   png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
   
   forest_sw <- forest(forest_plot, 
-                      sortvar = study,
+                      sortvar = country,
                       xlim = c(0.2, 4),             
                       leftcols = c("study", "cohort", "country"),
                       leftlabs = c("Study", "Cohort", "Country"),
@@ -456,7 +456,7 @@ lifetime_adj2_forest_plot <- function(df, exposure_time_frame, effect_col, lower
   png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
   
   forest_sw <- forest(forest_plot, 
-                      sortvar = study,
+                      sortvar = country,
                       xlim = c(0.2, 4),             
                       leftcols = c("country", "cohort"), 
                       leftlabs = c("Country", "Cohort"),
@@ -497,7 +497,7 @@ lifetime_best_forest_plot <- function(df, exposure_time_frame, effect_col, lower
   png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
   
   forest_sw <- forest(forest_plot, 
-                      sortvar = study,
+                      sortvar = country,
                       xlim = c(0.2, 4),             
                       leftcols = c("country", "cohort"), 
                       leftlabs = c("Country", "Cohort"),

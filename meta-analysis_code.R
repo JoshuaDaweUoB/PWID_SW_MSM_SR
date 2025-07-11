@@ -25,7 +25,7 @@ rec_adj1 <- c("sw_recent_hiv_all_adj1.png", "sw_recent_hiv_males_adj1.png", "sw_
 rec_adj2 <- c("sw_recent_hiv_all_adj2.png", "sw_recent_hiv_males_adj2.png", "sw_recent_hiv_females_adj2.png", "sw_recent_hiv_msm_adj2.png", "sw_recent_hcv_all_adj2.png", "sw_recent_hcv_males_adj2.png", "sw_recent_hcv_females_adj2.png", "sw_recent_hcv_msm_adj2.png")
 rec_best <- c("sw_recent_hiv_all_best.png", "sw_recent_hiv_males_best.png", "sw_recent_hiv_females_best.png", "sw_recent_hiv_msm_best.png", "sw_recent_hcv_all_best.png", "sw_recent_hcv_males_best.png", "sw_recent_hcv_females_best.png", "sw_recent_hcv_msm_best.png")
 sheet_names <- c("HIV_Sex_Work_All", "HIV_Sex_Work_Males", "HIV_Sex_Work_Females", "HIV_MSM", "HCV_Sex_Work_All", "HCV_Sex_Work_Males", "HCV_Sex_Work_Females", "HCV_MSM")
-subgroup_names <- c("pub_status", "2016_bin", "incidence_method", "who_region", "lmic_4cat", "hiv_crim", "rob_3cat")
+subgroup_names <- c("pub_status", "2016_bin", "incidence_method", "who_region", "lmic_bin", "hiv_crim", "rob_3cat")
 rec_best_subgroup <- c("recent_hiv_all_best_subgroup.png", "recent_hiv_males_best_subgroup.png", "recent_hiv_females_best_subgroup.png", "recent_hiv_msm_best_subgroup.png", "recent_hcv_all_best_subgroup.png", "recent_hcv_males_best_subgroup.png", "recent_hcv_females_best_subgroup.png", "recent_hcv_msm_best_subgroup.png")
 
 # data cleaning
@@ -74,56 +74,56 @@ save_dataframes_to_excel(dfs, sheet_names, file_path)
 
 # recent unadjusted forest plots
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", rec_unadj[i])
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/unadjusted/recent/", rec_unadj[i])
   print(filename)  # Print the filename to confirm
   recent_unadj_forest_plot(dfs[[i]], "recent", "effect_unadj_ln", "effect_unadj_lb_ln", "effect_unadj_ub_ln", "lead_author", "pub_status", filename)
 }
 
 # recent adjusted forest plots - structural factors only
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", rec_adj1[i])
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/adjusted1/recent/", rec_adj1[i])
   print(filename)  # Print the filename to confirm
   recent_adj1_forest_plot(dfs[[i]], "recent", "effect_adj1_ln", "effect_adj_lb1_ln", "effect_adj_ub1_ln", "lead_author", "pub_status", filename)
 }
 
 # recent adjusted forest plots - injecting risk factors
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", rec_adj2[i])
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/adjusted2/recent/", rec_adj2[i])
   print(filename)  # Print the filename to confirm
   recent_adj2_forest_plot(dfs[[i]], "recent", "effect_adj2_ln", "effect_adj2_lb_ln", "effect_adj2_ub_ln", "lead_author", "pub_status", filename)
 }
 
 # recent best effect forest plots
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", rec_best[i])
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/combined/recent/", rec_best[i])
   print(filename)  # Print the filename to confirm
   recent_best_forest_plot(dfs[[i]], "recent", "effect_best_ln", "effect_best_lb_ln", "effect_best_ub_ln", "lead_author", "pub_status", filename)
 }
 
 # lifetime unadjusted forest plots
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", gsub("recent", "lifetime", rec_unadj[i]))
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/unadjusted/lifetime/", gsub("recent", "lifetime", rec_unadj[i]))
   print(filename)  # Print the filename to confirm
   lifetime_unadj_forest_plot(dfs[[i]], "lifetime", "effect_unadj_ln", "effect_unadj_lb_ln", "effect_unadj_ub_ln", "lead_author", "pub_status", filename)
 }
 
 # lifetime adjusted forest plots - structural factors only
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", gsub("recent", "lifetime", rec_adj1[i]))
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/adjusted1/lifetime/", gsub("recent", "lifetime", rec_adj1[i]))
   print(filename)  # Print the filename to confirm
   lifetime_adj1_forest_plot(dfs[[i]], "lifetime", "effect_adj1_ln", "effect_adj_lb1_ln", "effect_adj_ub1_ln", "lead_author", "pub_status", filename)
 }
 
 # lifetime adjusted forest plots - injecting risk factors
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", gsub("recent", "lifetime", rec_adj2[i]))
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/adjusted2/lifetime/", gsub("recent", "lifetime", rec_adj2[i]))
   print(filename)  # Print the filename to confirm
   lifetime_adj2_forest_plot(dfs[[i]], "lifetime", "effect_adj2_ln", "effect_adj2_lb_ln", "effect_adj2_ub_ln", "lead_author", "pub_status", filename)
 }
 
 # lifetime best effect forest plots
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", gsub("recent", "lifetime", rec_best[i]))
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/combined/lifetime/", gsub("recent", "lifetime", rec_best[i]))
   print(filename)  # Print the filename to confirm
   lifetime_best_forest_plot(dfs[[i]], "lifetime", "effect_best_ln", "effect_best_lb_ln", "effect_best_ub_ln", "lead_author", "pub_status", filename)
 }
@@ -215,14 +215,14 @@ recent_unadj_forest_plot_combined(
 
 # recent best effect forest plots
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", rec_best_subgroup[i])
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/subgroups/combined/", rec_best_subgroup[i])
   print(filename)  # Print the filename to confirm
   subgroup_analysis_recent_best(dfs[[i]], "recent", "effect_best_ln", "effect_best_lb_ln", "effect_best_ub_ln", "lead_author", subgroup_names, filename)
 }
 
 # recent unadjusted effect forest plots by subgroup
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", rec_unadj[i])
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/subgroups/unadjusted/", rec_unadj[i])
   print(filename)  # Print the filename to confirm
   subgroup_analysis_recent_unadj(
     dfs[[i]],
@@ -235,7 +235,7 @@ for (i in 1:length(dfs)) {
 
 # recent adjusted (structural factors) effect forest plots by subgroup
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/", rec_adj1[i])
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/subgroups/adjusted/", rec_adj1[i])
   print(filename)  # Print the filename to confirm
   subgroup_analysis_recent_adj1(
     dfs[[i]],
