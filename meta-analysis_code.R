@@ -17,6 +17,7 @@ hcv_sw_all <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "H
 hcv_sw_males <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - Sex work - Male") 
 hcv_sw_females <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - Sex work - Female") 
 hcv_msm <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - MSM") 
+study_characteristics <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "Study characteristics") 
 
 # define dataframes and lists
 dfs <- list(hiv_sw_all, hiv_sw_males, hiv_sw_females, hiv_msm, hcv_sw_all, hcv_sw_males, hcv_sw_females, hcv_msm)

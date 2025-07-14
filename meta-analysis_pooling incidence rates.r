@@ -1,0 +1,181 @@
+# Your data
+rates <- c(2.4, 1.0)
+lower_ci <- c(1.6, 0.8)
+upper_ci <- c(3.5, 1.3)
+
+# Calculate log rates and standard errors
+log_rates <- log(rates)
+log_lower <- log(lower_ci)
+log_upper <- log(upper_ci)
+se_log_rates <- (log_upper - log_lower) / (2 * 1.96)
+
+# Perform meta-analysis
+library(metafor)
+res <- rma(yi = log_rates, sei = se_log_rates, method = "DL")
+
+# Get pooled estimate and CI on original scale
+pooled_rate <- exp(res$b[1])
+pooled_lower <- exp(res$ci.lb)
+pooled_upper <- exp(res$ci.ub)
+
+cat("Pooled incidence rate:", round(pooled_rate, 2), 
+    "(95% CI:", round(pooled_lower, 2), "-", round(pooled_upper, 2), ")\n")
+
+ # ukraine
+
+# Assuming 3 studies: rate, lower_ci, upper_ci for each
+rates <- c(6.7, 21.7)
+lower_ci <- c(0.01, 19.1)
+upper_ci <- c(14.3, 24.4)
+
+# Calculate log rates and standard errors
+log_rates <- log(rates)
+log_lower <- log(lower_ci)
+log_upper <- log(upper_ci)
+se_log_rates <- (log_upper - log_lower) / (2 * 1.96)
+
+# Perform meta-analysis
+library(metafor)
+res <- rma(yi = log_rates, sei = se_log_rates, method = "DL")
+
+# Get pooled estimate and CI on original scale
+pooled_rate <- exp(res$b[1])
+pooled_lower <- exp(res$ci.lb)
+pooled_upper <- exp(res$ci.ub)
+
+cat("Pooled incidence rate:", round(pooled_rate, 2), 
+    "(95% CI:", round(pooled_lower, 2), "-", round(pooled_upper, 2), ")\n")
+
+# ansps
+
+# New data to pool
+rates <- c(8.958, 6.782)
+lower_ci <- c(6.970, 6.297)
+upper_ci <- c(11.514, 7.303)
+
+# Calculate log rates and standard errors
+log_rates <- log(rates)
+log_lower <- log(lower_ci)
+log_upper <- log(upper_ci)
+se_log_rates <- (log_upper - log_lower) / (2 * 1.96)
+
+# Perform meta-analysis
+library(metafor)
+res <- rma(yi = log_rates, sei = se_log_rates, method = "DL")
+
+# Get pooled estimate and CI on original scale
+pooled_rate <- exp(res$b[1])
+pooled_lower <- exp(res$ci.lb)
+pooled_upper <- exp(res$ci.ub)
+
+cat("Pooled incidence rate:", round(pooled_rate, 2), 
+    "(95% CI:", round(pooled_lower, 2), "-", round(pooled_upper, 2), ")\n")
+
+# HIV incidence rates to pool
+rates <- c(0.142, 0.068)
+lower_ci <- c(0.0533, 0.044)
+upper_ci <- c(0.378, 0.103)
+
+# Calculate log rates and standard errors
+log_rates <- log(rates)
+log_lower <- log(lower_ci)
+log_upper <- log(upper_ci)
+se_log_rates <- (log_upper - log_lower) / (2 * 1.96)
+
+# Perform meta-analysis
+library(metafor)
+res <- rma(yi = log_rates, sei = se_log_rates, method = "DL")
+
+# Get pooled estimate and CI on original scale
+pooled_rate <- exp(res$b[1])
+pooled_lower <- exp(res$ci.lb)
+pooled_upper <- exp(res$ci.ub)
+
+cat("Pooled HIV incidence rate:", round(pooled_rate, 3), 
+    "(95% CI:", round(pooled_lower, 3), "-", round(pooled_upper, 3), ")\n")
+
+# india
+
+# Incidence rates to pool
+rates <- c(1.0, 2.9)
+lower_ci <- c(0, 0)
+upper_ci <- c(3.4, 12.4)
+
+# Handle zero lower bounds by adding small constant
+lower_ci[lower_ci == 0] <- 0.01
+
+# Calculate log rates and standard errors
+log_rates <- log(rates)
+log_lower <- log(lower_ci)
+log_upper <- log(upper_ci)
+se_log_rates <- (log_upper - log_lower) / (2 * 1.96)
+
+# Perform meta-analysis
+library(metafor)
+res <- rma(yi = log_rates, sei = se_log_rates, method = "DL")
+
+# Get pooled estimate and CI on original scale
+pooled_rate <- exp(res$b[1])
+pooled_lower <- exp(res$ci.lb)
+pooled_upper <- exp(res$ci.ub)
+
+cat("Pooled incidence rate:", round(pooled_rate, 2), 
+    "(95% CI:", round(pooled_lower, 2), "-", round(pooled_upper, 2), ")\n")
+
+# india avhi
+
+# New incidence rates to pool
+rates <- c(6.23, 9.09)
+lower_ci <- c(2.01, 8.11)
+upper_ci <- c(19.33, 10.19)
+
+# Calculate log rates and standard errors
+log_rates <- log(rates)
+log_lower <- log(lower_ci)
+log_upper <- log(upper_ci)
+se_log_rates <- (log_upper - log_lower) / (2 * 1.96)
+
+# Perform meta-analysis
+library(metafor)
+res <- rma(yi = log_rates, sei = se_log_rates, method = "DL")
+
+# Get pooled estimate and CI on original scale
+pooled_rate <- exp(res$b[1])
+pooled_lower <- exp(res$ci.lb)
+pooled_upper <- exp(res$ci.ub)
+
+cat("Pooled incidence rate:", round(pooled_rate, 2), 
+    "(95% CI:", round(pooled_lower, 2), "-", round(pooled_upper, 2), ")\n")
+
+# new delhi
+
+# new delhi incidence rates to pool
+rates <- c(20.5, 21.6)
+lower_ci <- c(14.6, 18.1)
+upper_ci <- c(28.8, 25.7)
+
+# Calculate log rates and standard errors
+log_rates <- log(rates)
+log_lower <- log(lower_ci)
+log_upper <- log(upper_ci)
+se_log_rates <- (log_upper - log_lower) / (2 * 1.96)
+
+# Perform meta-analysis
+res <- rma(yi = log_rates, sei = se_log_rates, method = "DL")
+
+# Get pooled estimate and CI on original scale
+pooled_rate <- exp(res$b[1])
+pooled_lower <- exp(res$ci.lb)
+pooled_upper <- exp(res$ci.ub)
+
+cat("Pooled New Delhi incidence rate:", round(pooled_rate, 2), 
+    "(95% CI:", round(pooled_lower, 2), "-", round(pooled_upper, 2), ")\n")
+
+    # Calculate years at risk from Vancouver study data
+total_cases_vancouver <- 142
+incidence_rate_vancouver <- 7.6  # per 100 person-years
+years_at_risk_vancouver <- total_cases_vancouver / (incidence_rate_vancouver / 100)
+
+cat("Vancouver study - Total cases:", total_cases_vancouver, "\n")
+cat("Vancouver study - Incidence rate per 100 person-years:", incidence_rate_vancouver, "\n") 
+cat("Vancouver study - Years at risk:", round(years_at_risk_vancouver, 1), "\n")
