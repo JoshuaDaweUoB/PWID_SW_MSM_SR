@@ -11,11 +11,58 @@ setwd("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/
 # load dataframe
 study_characteristics <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "Study characteristics") 
 
-# drop rows where article type is missing
-study_characteristics <- study_characteristics %>%
-  filter(!is.na(article_type))
+# study_characteristics_details
+study_characteristics_details <- study_characteristics %>%
+  select(study, journal, year_pub, cohort, city, design, sampling, recruitment_location)
 
-# number of countries 
+# study_characteristics_participants
+study_characteristics_participants <- study_characteristics %>%
+  select(study, average_age, perc_prison, perc_homeless, perc_oat, inj_duration)
+
+# study_characteristics_outcomes
+study_characteristics_outcomes <- study_characteristics %>%
+  select(study, hiv_sample_size, hcv_sample_size, hiv_cases, hiv_follow_up_years, hiv_inc, hiv_inc_95ci, 
+         hcv_cases, hcv_follow_up_years, hcv_inc, hcv_inc_95ci, incidence_assessment, testing_frequency_mths)
+
+# Filter study_characteristics_details for HIV studies
+study_characteristics_details_hiv <- study_characteristics_details %>%
+  filter(study %in% (study_characteristics %>% filter(hiv == "Yes") %>% pull(study)))
+
+# Filter study_characteristics_details for HCV studies  
+study_characteristics_details_hcv <- study_characteristics_details %>%
+  filter(study %in% (study_characteristics %>% filter(hcv == "Yes") %>% pull(study)))
+
+# Filter study_characteristics_participants for HIV studies
+study_characteristics_participants_hiv <- study_characteristics_participants %>%
+  filter(study %in% (study_characteristics %>% filter(hiv == "Yes") %>% pull(study)))
+
+# Filter study_characteristics_participants for HCV studies  
+study_characteristics_participants_hcv <- study_characteristics_participants %>%
+  filter(study %in% (study_characteristics %>% filter(hcv == "Yes") %>% pull(study)))
+
+# Filter study_characteristics_outcomes for HIV studies (drop HCV columns)
+study_characteristics_outcomes_hiv <- study_characteristics_outcomes %>%
+  filter(study %in% (study_characteristics %>% filter(hiv == "Yes") %>% pull(study))) %>%
+  select(-c(hcv_sample_size, hcv_cases, hcv_follow_up_years, hcv_inc, hcv_inc_95ci))
+
+# Filter study_characteristics_outcomes for HCV studies (drop HIV columns)
+study_characteristics_outcomes_hcv <- study_characteristics_outcomes %>%
+  filter(study %in% (study_characteristics %>% filter(hcv == "Yes") %>% pull(study))) %>%
+  select(-c(hiv_sample_size, hiv_cases, hiv_follow_up_years, hiv_inc, hiv_inc_95ci))
+
+# Save details Excel sheets
+write_xlsx(study_characteristics_details_hiv, "Drafts/Study characteristics/study_characteristics_details_hiv.xlsx")
+write_xlsx(study_characteristics_details_hcv, "Drafts/Study characteristics/study_characteristics_details_hcv.xlsx")
+
+# Save participants Excel sheets
+write_xlsx(study_characteristics_participants_hiv, "Drafts/Study characteristics/study_characteristics_participants_hiv.xlsx")
+write_xlsx(study_characteristics_participants_hcv, "Drafts/Study characteristics/study_characteristics_participants_hcv.xlsx")
+
+# Save outcomes Excel sheets
+write_xlsx(study_characteristics_outcomes_hiv, "Drafts/Study characteristics/study_characteristics_outcomes_hiv.xlsx")
+write_xlsx(study_characteristics_outcomes_hcv, "Drafts/Study characteristics/study_characteristics_outcomes_hcv.xlsx")
+
+# number of countries
 num_countries <- study_characteristics %>%
   filter(country != "multiple") %>%
   summarise(num_countries = n_distinct(country)) %>%
