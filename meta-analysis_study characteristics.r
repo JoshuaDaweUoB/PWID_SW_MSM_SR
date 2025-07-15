@@ -68,7 +68,7 @@ num_countries <- study_characteristics %>%
   summarise(num_countries = n_distinct(country)) %>%
   ungroup()
 
-## total number of estimates
+# total number of estimates
 total_estimates <- study_characteristics %>%
   summarise(total_estimates = sum(estimates, na.rm = TRUE)) %>%
   pull(total_estimates)
@@ -124,6 +124,12 @@ num_msm_yes <- study_characteristics %>%
 sw_msm_table <- tibble(
   group = c("Sex work only", "MSM only", "Both Sex work and MSM"),
   n = c(num_sex_work_yes, num_msm_yes, num_both_sw_msm)
+)
+
+# Create total_table for total estimates
+total_table <- tibble(
+  group = "Total estimates",
+  n = total_estimates
 )
 
 # Combine all tables

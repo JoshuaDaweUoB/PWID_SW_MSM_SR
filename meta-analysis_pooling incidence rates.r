@@ -268,3 +268,42 @@ cat("Population-weighted pooled rate:", round(pooled_rate, 2),
 weights_used <- weights(res)
 cat("Study 1 effective weight:", round(weights_used[1], 1), "%\n")
 cat("Study 2 effective weight:", round(weights_used[2], 1), "%\n")
+
+# uk associations
+
+# Create the 2x2 table with half-case correction
+exposed_cases <- 0 + 0.5
+exposed_total <- 7 + 0.5
+unexposed_cases <- 11 + 0.5
+unexposed_total <- 724 + 0.5
+
+# Calculate rates per 100 person-years (or per 100 participants)
+exposed_rate <- (exposed_cases / exposed_total) * 100
+unexposed_rate <- (unexposed_cases / unexposed_total) * 100
+
+# Calculate rate ratio
+rate_ratio <- exposed_rate / unexposed_rate
+
+# Calculate 95% CI for rate ratio using log transformation
+log_rr <- log(rate_ratio)
+se_log_rr <- sqrt((1/exposed_cases) + (1/unexposed_cases) - (1/exposed_total) - (1/unexposed_total))
+ci_lower <- exp(log_rr - 1.96 * se_log_rr)
+ci_upper <- exp(log_rr + 1.96 * se_log_rr)
+
+# Create summary table
+msm_hcv_rr_table <- tibble(
+  exposure = "MSM (past 12 months)",
+  exposed_cases = exposed_cases - 0.5,  # Show original values
+  exposed_total = exposed_total - 0.5,
+  unexposed_cases = unexposed_cases - 0.5,
+  unexposed_total = unexposed_total - 0.5,
+  exposed_rate = round(exposed_rate, 2),
+  unexposed_rate = round(unexposed_rate, 2),
+  rate_ratio = round(rate_ratio, 2),
+  ci_lower = round(ci_lower, 2),
+  ci_upper = round(ci_upper, 2),
+  ci_95 = paste0("(", round(ci_lower, 2), "-", round(ci_upper, 2), ")")
+)
+
+options(width = 1000)
+print(msm_hcv_rr_table)

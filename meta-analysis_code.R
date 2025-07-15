@@ -112,9 +112,6 @@ hcv_sw_males   <- dfs[[6]]
 hcv_sw_females <- dfs[[7]]
 hcv_msm        <- dfs[[8]]
 
-View(hiv_sw_all)
-View(study_characteristics)
-
 # recent unadjusted forest plots
 for (i in 1:length(dfs)) {
   filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/unadjusted/recent/", rec_unadj[i])
