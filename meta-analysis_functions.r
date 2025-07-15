@@ -69,7 +69,20 @@ replace_adj1_with_adj2_if_missing <- function(df) {
     mutate(
       effect_adj1 = ifelse(is.na(effect_adj1), effect_adj2, effect_adj1),
       effect_adj_lb1 = ifelse(is.na(effect_adj_lb1), effect_adj_lb2, effect_adj_lb1),
-      effect_adj_ub1 = ifelse(is.na(effect_adj_ub1), effect_adj_ub2, effect_adj_ub1)
+      effect_adj_ub1 = ifelse(is.na(effect_adj_ub1), effect_adj_ub2, effect_adj_ub1),
+      moa_adj1 = ifelse(is.na(moa_adj1) | moa_adj1 == "NR", moa_adj2, moa_adj1)
+    )
+  return(df)
+}
+
+## replace adj2 with adj1 if missing
+replace_adj2_with_adj1_if_missing <- function(df) {
+  df <- df %>%
+    mutate(
+      effect_adj2 = ifelse(is.na(effect_adj2), effect_adj1, effect_adj2),
+      effect_adj_lb2 = ifelse(is.na(effect_adj_lb2), effect_adj_lb1, effect_adj_lb2),
+      effect_adj_ub2 = ifelse(is.na(effect_adj_ub2), effect_adj_ub1, effect_adj_ub2),
+      moa_adj2 = ifelse(is.na(moa_adj2) | moa_adj2 == "NR", moa_adj1, moa_adj2)
     )
   return(df)
 }
@@ -88,6 +101,21 @@ save_dataframes_to_excel <- function(dfs, sheet_names, file_path) {
   
   # write the dataframes to an Excel file
   write_xlsx(named_dfs, path = file_path)
+}
+
+# Function to merge study_characteristics with dataframes in dfs list
+merge_study_characteristics <- function(dfs_list, study_char_df) {
+  # Select only the binary variables and study column from study_characteristics
+  char_to_merge <- study_char_df %>%
+    select(study, hiv_inc_bin, hcv_inc_bin)
+  
+  # Merge with each dataframe in the list
+  merged_dfs <- purrr::map(dfs_list, function(df) {
+    df %>%
+      left_join(char_to_merge, by = "study")
+  })
+  
+  return(merged_dfs)
 }
 
 # meta analysis
