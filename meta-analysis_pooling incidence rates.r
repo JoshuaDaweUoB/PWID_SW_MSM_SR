@@ -1,3 +1,5 @@
+library(metafor)
+
 # Your data
 rates <- c(2.4, 1.0)
 lower_ci <- c(1.6, 0.8)
@@ -10,7 +12,6 @@ log_upper <- log(upper_ci)
 se_log_rates <- (log_upper - log_lower) / (2 * 1.96)
 
 # Perform meta-analysis
-library(metafor)
 res <- rma(yi = log_rates, sei = se_log_rates, method = "DL")
 
 # Get pooled estimate and CI on original scale
@@ -35,7 +36,6 @@ log_upper <- log(upper_ci)
 se_log_rates <- (log_upper - log_lower) / (2 * 1.96)
 
 # Perform meta-analysis
-library(metafor)
 res <- rma(yi = log_rates, sei = se_log_rates, method = "DL")
 
 # Get pooled estimate and CI on original scale

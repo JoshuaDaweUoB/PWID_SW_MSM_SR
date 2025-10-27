@@ -849,7 +849,6 @@ meta_regress_strata_summary <- function(df) {
 }
 
 ## publication bias
-
 test_publication_bias <- function(df, yi_col, sei_col, plot_filename = NULL) {
   # Remove rows with missing values
   df <- df %>% filter(!is.na(.data[[yi_col]]), !is.na(.data[[sei_col]]))
@@ -857,17 +856,44 @@ test_publication_bias <- function(df, yi_col, sei_col, plot_filename = NULL) {
   # Fit random-effects model
   res <- metafor::rma(yi = df[[yi_col]], sei = df[[sei_col]], method = "DL")
   
+  # Egger's test
+  egger <- metafor::regtest(res, model = "rma", predictor = "sei")
+  
+  # Create title with p-value
+  p_value <- round(egger$pval, 3)
+  plot_title <- paste0("Funnel plot\nEgger's test p = ", p_value)
+  
+  # Set up colors based on pub_status
+  pub_status_levels <- unique(df$pub_status)
+  colors <- rainbow(length(pub_status_levels))
+  names(colors) <- pub_status_levels
+  point_colors <- colors[df$pub_status]
+  
   # Funnel plot
   if (!is.null(plot_filename)) {
     png(plot_filename, width = 1200, height = 900, res = 150)
-    metafor::funnel(res, main = "Funnel plot")
+    metafor::funnel(res, main = plot_title, col = point_colors, pch = 19)
+    
+    # Add legend
+    legend("topright", 
+           legend = names(colors), 
+           col = colors, 
+           pch = 19, 
+           title = "Publication Status",
+           bty = "n")
     dev.off()
   } else {
-    metafor::funnel(res, main = "Funnel plot")
+    metafor::funnel(res, main = plot_title, col = point_colors, pch = 19)
+    
+    # Add legend
+    legend("topright", 
+           legend = names(colors), 
+           col = colors, 
+           pch = 19, 
+           title = "Publication Status",
+           bty = "n")
   }
   
-  # Egger's test
-  egger <- metafor::regtest(res, model = "rma", predictor = "sei")
   print(egger)
   return(egger)
 }

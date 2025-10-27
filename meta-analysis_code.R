@@ -301,69 +301,69 @@ writexl::write_xlsx(
 
 ## publication bias
 
-# Publication bias tests for each dataframe
-# Add effect_best_se to each dataframe
+# effect_unadj_se to each dataframe
 for (df_name in c("hiv_sw_all", "hiv_sw_males", "hiv_sw_females", "hiv_msm",
                   "hcv_sw_all", "hcv_sw_males", "hcv_sw_females", "hcv_msm")) {
   df <- get(df_name)
-  df$effect_best_se <- (df$effect_best_ub_ln - df$effect_best_lb_ln) / (2 * 1.96)
+  df$effect_unadj_se <- (df$effect_unadj_ub_ln - df$effect_unadj_lb_ln) / (2 * 1.96)
   assign(df_name, df, envir = .GlobalEnv)
 }
 
+# publication bias tests for each dataframe (recent)
 test_publication_bias(
   hiv_sw_all %>% filter(exposure_time_frame_bin == "recent"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hiv_sw_all.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_all_unadj.png"
 )
 
 test_publication_bias(
   hiv_sw_males %>% filter(exposure_time_frame_bin == "recent"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hiv_sw_males.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_males_unadj.png"
 )
 
 test_publication_bias(
   hiv_sw_females %>% filter(exposure_time_frame_bin == "recent"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hiv_sw_females.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_females_unadj.png"
 )
 
 test_publication_bias(
   hiv_msm %>% filter(exposure_time_frame_bin == "recent"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hiv_msm.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_msm_unadj.png"
 )
 
 test_publication_bias(
   hcv_sw_all %>% filter(exposure_time_frame_bin == "recent"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hcv_sw_all.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_all_unadj.png"
 )
 
 test_publication_bias(
   hcv_sw_males %>% filter(exposure_time_frame_bin == "recent"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hcv_sw_males.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_males_unadj.png"
 )
 
 test_publication_bias(
   hcv_sw_females %>% filter(exposure_time_frame_bin == "recent"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hcv_sw_females.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_females_unadj.png"
 )
 
 test_publication_bias(
   hcv_msm %>% filter(exposure_time_frame_bin == "recent"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hcv_msm.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_msm_unadj.png"
 )
 
 # Create a list of filtered dataframes and plot titles
@@ -383,102 +383,253 @@ titles <- c(
 )
 
 # Open a PNG device for a 2x4 grid
-png("code/plots/publication bias/funnel_combined.png", width = 2400, height = 1200, res = 200)
+png("code/plots/publication bias/funnel_combined_recent_unadj.png", width = 2400, height = 1200, res = 200)
 par(mfrow = c(2, 4), oma = c(0, 0, 2, 0)) # 2 rows, 4 columns
 
 for (i in seq_along(funnel_dfs)) {
   df <- funnel_dfs[[i]]
+  
+  # Set up colors based on pub_status
+  pub_status_levels <- unique(df$pub_status)
+  colors <- rainbow(length(pub_status_levels))
+  names(colors) <- pub_status_levels
+  point_colors <- colors[df$pub_status]
+  
   # Fit meta-analysis model
-  res <- metafor::rma(yi = df$effect_best_ln, sei = df$effect_best_se, method = "DL")
-  metafor::funnel(res, main = titles[i])
+  res <- metafor::rma(yi = df$effect_unadj_ln, sei = df$effect_unadj_se, method = "DL")
+  
+  # Egger's test
+  egger <- metafor::regtest(res, model = "rma", predictor = "sei")
+  
+  # Create title with p-value
+  p_value <- round(egger$pval, 3)
+  plot_title <- paste0(titles[i], "\nEgger's test p = ", p_value)
+  
+  # Create funnel plot with colors
+  metafor::funnel(res, main = plot_title, col = point_colors, pch = 19)
+  
+  # Add legend to each plot
+  legend("topright", 
+         legend = names(colors), 
+         col = colors, 
+         pch = 19, 
+         title = "Publication Status",
+         bty = "n",
+         cex = 0.6)  # Even smaller text for all plots
 }
 
-mtext("Funnel Plots for Publication Bias (Recent Estimates)", outer = TRUE, cex = 1.5)
+mtext("Funnel Plots for Publication Bias (Recent Unadjusted Estimates)", outer = TRUE, cex = 1.5)
 dev.off()
 
-# Publication bias tests for each dataframe (lifetime)
+# publication bias tests for each dataframe (lifetime)
 test_publication_bias(
   hiv_sw_all %>% filter(exposure_time_frame_bin == "lifetime"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hiv_sw_all_lifetime.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_all_lifetime_unadj.png"
 )
 
 test_publication_bias(
   hiv_sw_males %>% filter(exposure_time_frame_bin == "lifetime"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hiv_sw_males_lifetime.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_males_lifetime_unadj.png"
 )
 
 test_publication_bias(
   hiv_sw_females %>% filter(exposure_time_frame_bin == "lifetime"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hiv_sw_females_lifetime.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_sw_females_lifetime_unadj.png"
 )
 
 test_publication_bias(
   hiv_msm %>% filter(exposure_time_frame_bin == "lifetime"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hiv_msm_lifetime.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hiv_msm_lifetime_unadj.png"
 )
 
 test_publication_bias(
   hcv_sw_all %>% filter(exposure_time_frame_bin == "lifetime"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hcv_sw_all_lifetime.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_all_lifetime_unadj.png"
 )
 
 test_publication_bias(
   hcv_sw_males %>% filter(exposure_time_frame_bin == "lifetime"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hcv_sw_males_lifetime.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_males_lifetime_unadj.png"
 )
 
 test_publication_bias(
   hcv_sw_females %>% filter(exposure_time_frame_bin == "lifetime"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hcv_sw_females_lifetime.png"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_sw_females_lifetime_unadj.png"
 )
 
 test_publication_bias(
   hcv_msm %>% filter(exposure_time_frame_bin == "lifetime"),
-  yi_col = "effect_best_ln",
-  sei_col = "effect_best_se",
-  plot_filename = "code/plots/publication bias/funnel_hcv_msm_lifetime.png"
-)
-
-# Create a list of filtered dataframes and plot titles for lifetime
-funnel_dfs_lifetime <- list(
-  hiv_sw_all     = hiv_sw_all %>% filter(exposure_time_frame_bin == "lifetime"),
-  hiv_sw_males   = hiv_sw_males %>% filter(exposure_time_frame_bin == "lifetime"),
-  hiv_sw_females = hiv_sw_females %>% filter(exposure_time_frame_bin == "lifetime"),
-  hiv_msm        = hiv_msm %>% filter(exposure_time_frame_bin == "lifetime"),
-  hcv_sw_all     = hcv_sw_all %>% filter(exposure_time_frame_bin == "lifetime"),
-  hcv_sw_males   = hcv_sw_males %>% filter(exposure_time_frame_bin == "lifetime"),
-  hcv_sw_females = hcv_sw_females %>% filter(exposure_time_frame_bin == "lifetime"),
-  hcv_msm        = hcv_msm %>% filter(exposure_time_frame_bin == "lifetime")
-)
-titles_lifetime <- c(
-  "HIV SW All", "HIV SW Males", "HIV SW Females", "HIV MSM",
-  "HCV SW All", "HCV SW Males", "HCV SW Females", "HCV MSM"
+  yi_col = "effect_unadj_ln",
+  sei_col = "effect_unadj_se",
+  plot_filename = "code/plots/publication bias/funnel_hcv_msm_lifetime_unadj.png"
 )
 
 # Open a PNG device for a 2x4 grid for lifetime
-png("code/plots/publication bias/funnel_combined_lifetime.png", width = 2400, height = 1200, res = 200)
+png("code/plots/publication bias/funnel_combined_lifetime_unadj.png", width = 2400, height = 1200, res = 200)
 par(mfrow = c(2, 4), oma = c(0, 0, 2, 0)) # 2 rows, 4 columns
 
 for (i in seq_along(funnel_dfs_lifetime)) {
   df <- funnel_dfs_lifetime[[i]]
+  
+  # Set up colors based on pub_status
+  pub_status_levels <- unique(df$pub_status)
+  colors <- rainbow(length(pub_status_levels))
+  names(colors) <- pub_status_levels
+  point_colors <- colors[df$pub_status]
+  
   # Fit meta-analysis model
-  res <- metafor::rma(yi = df$effect_best_ln, sei = df$effect_best_se, method = "DL")
-  metafor::funnel(res, main = titles_lifetime[i])
+  res <- metafor::rma(yi = df$effect_unadj_ln, sei = df$effect_unadj_se, method = "DL")
+  
+  # Egger's test
+  egger <- metafor::regtest(res, model = "rma", predictor = "sei")
+  
+  # Create title with p-value
+  p_value <- round(egger$pval, 3)
+  plot_title <- paste0(titles_lifetime[i], "\nEgger's test p = ", p_value)
+  
+  # Create funnel plot with colors
+  metafor::funnel(res, main = plot_title, col = point_colors, pch = 19)
+  
+  # Add legend to each plot
+  legend("topright", 
+         legend = names(colors), 
+         col = colors, 
+         pch = 19, 
+         title = "Publication Status",
+         bty = "n",
+         cex = 0.6)  # Small text for combined plot
 }
 
-mtext("Funnel Plots for Publication Bias (Lifetime Estimates)", outer = TRUE, cex = 1.5)
+mtext("Funnel Plots for Publication Bias (Lifetime Unadjusted Estimates)", outer = TRUE, cex = 1.5)
 dev.off()
+
+# Function to perform Egger's test by publication status
+egger_test_by_pub_status <- function(df, yi_col, sei_col) {
+  # Remove rows with missing values
+  df <- df %>% filter(!is.na(.data[[yi_col]]), !is.na(.data[[sei_col]]))
+  
+  results <- list()
+  
+  # Get unique publication statuses
+  pub_statuses <- unique(df$pub_status)
+  
+  for (status in pub_statuses) {
+    subset_df <- df %>% filter(pub_status == status)
+    
+    if (nrow(subset_df) >= 3) {  # Need at least 3 studies for Egger's test
+      # Fit random-effects model
+      res <- metafor::rma(yi = subset_df[[yi_col]], sei = subset_df[[sei_col]], method = "DL")
+      
+      # Egger's test
+      egger <- metafor::regtest(res, model = "rma", predictor = "sei")
+      
+      results[[status]] <- list(
+        n_studies = nrow(subset_df),
+        egger_test = egger,
+        p_value = egger$pval,
+        estimate = egger$est,
+        se = egger$se,
+        ci_lower = egger$ci.lb,
+        ci_upper = egger$ci.ub
+      )
+      
+      cat("Publication Status:", status, "\n")
+      cat("Number of studies:", nrow(subset_df), "\n")
+      cat("Egger's test p-value:", round(egger$pval, 3), "\n")
+      cat("Estimate:", round(egger$est, 3), "\n")
+      cat("95% CI:", round(egger$ci.lb, 3), "-", round(egger$ci.ub, 3), "\n")
+      cat("---\n")
+      
+    } else {
+      results[[status]] <- list(
+        n_studies = nrow(subset_df),
+        egger_test = NULL,
+        p_value = NA,
+        message = "Insufficient studies for Egger's test"
+      )
+      
+      cat("Publication Status:", status, "\n")
+      cat("Number of studies:", nrow(subset_df), "\n")
+      cat("Insufficient studies for Egger's test\n")
+      cat("---\n")
+    }
+  }
+  
+  return(results)
+}
+
+# Apply to each dataset (recent exposure)
+egger_by_pub_status_results <- list()
+
+datasets <- list(
+  "HIV_SW_All" = hiv_sw_all %>% filter(exposure_time_frame_bin == "recent"),
+  "HIV_SW_Males" = hiv_sw_males %>% filter(exposure_time_frame_bin == "recent"),
+  "HIV_SW_Females" = hiv_sw_females %>% filter(exposure_time_frame_bin == "recent"),
+  "HIV_MSM" = hiv_msm %>% filter(exposure_time_frame_bin == "recent"),
+  "HCV_SW_All" = hcv_sw_all %>% filter(exposure_time_frame_bin == "recent"),
+  "HCV_SW_Males" = hcv_sw_males %>% filter(exposure_time_frame_bin == "recent"),
+  "HCV_SW_Females" = hcv_sw_females %>% filter(exposure_time_frame_bin == "recent"),
+  "HCV_MSM" = hcv_msm %>% filter(exposure_time_frame_bin == "recent")
+)
+
+for (dataset_name in names(datasets)) {
+  cat("\n========================================\n")
+  cat("Dataset:", dataset_name, "\n")
+  cat("========================================\n")
+  
+  egger_by_pub_status_results[[dataset_name]] <- egger_test_by_pub_status(
+    datasets[[dataset_name]], 
+    "effect_unadj_ln", 
+    "effect_unadj_se"
+  )
+}
+
+# Create a summary table
+create_egger_summary_table <- function(results_list) {
+  summary_rows <- list()
+  
+  for (dataset_name in names(results_list)) {
+    dataset_results <- results_list[[dataset_name]]
+    
+    for (pub_status in names(dataset_results)) {
+      result <- dataset_results[[pub_status]]
+      
+      summary_rows[[length(summary_rows) + 1]] <- data.frame(
+        Dataset = dataset_name,
+        Publication_Status = pub_status,
+        N_Studies = result$n_studies,
+        Egger_P_Value = ifelse(is.null(result$p_value), NA, result$p_value),
+        Egger_Estimate = ifelse(is.null(result$estimate), NA, result$estimate),
+        Egger_SE = ifelse(is.null(result$se), NA, result$se),
+        Egger_CI_Lower = ifelse(is.null(result$ci_lower), NA, result$ci_lower),
+        Egger_CI_Upper = ifelse(is.null(result$ci_upper), NA, result$ci_upper),
+        Sufficient_Studies = !is.null(result$egger_test)
+      )
+    }
+  }
+  
+  return(bind_rows(summary_rows))
+}
+
+# Create summary table
+egger_summary_table <- create_egger_summary_table(egger_by_pub_status_results)
+
+# Save to Excel
+write_xlsx(egger_summary_table, "code/egger_test_by_publication_status.xlsx")
+
+# Print summary table
+print(egger_summary_table)

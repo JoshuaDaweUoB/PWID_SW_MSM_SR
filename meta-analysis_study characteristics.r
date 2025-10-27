@@ -72,6 +72,7 @@ num_countries <- study_characteristics %>%
 total_estimates <- study_characteristics %>%
   summarise(total_estimates = sum(estimates, na.rm = TRUE)) %>%
   pull(total_estimates)
+total_estimates
 
 ## sum of estimates by article_type
 estimates_by_article_type <- study_characteristics %>%
