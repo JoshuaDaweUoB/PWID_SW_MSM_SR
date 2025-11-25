@@ -12,11 +12,11 @@ setwd("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/
 overall_data_recent <- read_excel("Data extraction/Overall estimates.xlsx", sheet = "Overall estimates")
 overall_data_recent_best <- read_excel("Data extraction/Overall estimates.xlsx", sheet = "Overall estimates_best")
 
-overall_data_recent$i2 <- round(overall_data_recent$i2 * 100, 0)  # Convert i2 to percentage and round to no decimals
-overall_data_recent$i2 <- paste0(overall_data_recent$i2, "%")  # Add percentage sign to i2 values
+overall_data_recent$i2 <- round(overall_data_recent$i2 * 100, 0)
+overall_data_recent$i2 <- paste0(overall_data_recent$i2, "%")
 
-overall_data_recent_best$i2 <- round(overall_data_recent_best$i2 * 100, 0)  # Convert i2 to percentage and round to no decimals
-overall_data_recent_best$i2 <- paste0(overall_data_recent_best$i2, "%")  # Add percentage sign to i2 values
+overall_data_recent_best$i2 <- round(overall_data_recent_best$i2 * 100, 0)
+overall_data_recent_best$i2 <- paste0(overall_data_recent_best$i2, "%")
 
 # Perform meta-analysis
 meta_analysis <- metagen(TE = effect_2_ln,

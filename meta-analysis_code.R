@@ -31,11 +31,11 @@ rec_best_subgroup <- c("recent_hiv_all_best_subgroup.png", "recent_hiv_males_bes
 
 # data cleaning
 
-# Select columns and create incidence binary variables for study_characteristics
+# incidence binary variables for study_characteristics
 study_characteristics <- study_characteristics %>%
   select(study, hiv_cases, hiv_follow_up_years, hiv_inc, hiv_inc_95ci, 
          hcv_cases, hcv_follow_up_years, hcv_inc, hcv_inc_95ci) %>%
-  # Convert incidence columns to numeric, treating "NR", "NA", "-" as NA
+  # conver incidence cols to numeric, treating "NR", "NA", "-" as NA
   mutate(
     hiv_inc = case_when(
       hiv_inc %in% c("NR", "NA", "-", "", "na", "n/a", "N/A") ~ NA_real_,
@@ -46,26 +46,26 @@ study_characteristics <- study_characteristics %>%
       TRUE ~ as.numeric(hcv_inc)
     )
   ) %>%
-  # Create 3-level variables with descriptive labels
+  # 3-level variables
   mutate(
     hiv_inc_bin = case_when(
-      is.na(hiv_inc) ~ "Missing",     # Missing = "Missing"
-      hiv_inc < 2 ~ "Low",           # Low incidence = "Low"
-      TRUE ~ "High"                  # High incidence = "High"
+      is.na(hiv_inc) ~ "Missing",
+      hiv_inc < 2 ~ "Low",
+      TRUE ~ "High"
     ),
     hcv_inc_bin = case_when(
-      is.na(hcv_inc) ~ "Missing",     # Missing = "Missing"
-      hcv_inc < 15 ~ "Low",          # Low incidence = "Low"
-      TRUE ~ "High"                  # High incidence = "High"
+      is.na(hcv_inc) ~ "Missing",
+      hcv_inc < 15 ~ "Low",
+      TRUE ~ "High"
     )
   ) %>%
-  # Convert to factor with ordered levels
+  # factor
   mutate(
     hiv_inc_bin = factor(hiv_inc_bin, levels = c("Low", "High", "Missing")),
     hcv_inc_bin = factor(hcv_inc_bin, levels = c("Low", "High", "Missing"))
   )
 
-# Apply the merge function
+# merge
 dfs <- merge_study_characteristics(dfs, study_characteristics)
 
 hiv_sw_all     <- dfs[[1]]
@@ -92,7 +92,7 @@ for (i in 1:length(dfs)) {
   dfs[[i]] <- df
 }
 
-# Apply replace_adj2_with_adj1_if_missing to each dataframe in dfs
+# replace_adj2_with_adj1_if_missing to each dataframe in dfs
 dfs <- purrr::map(dfs, replace_adj2_with_adj1_if_missing)
 
 # log transform after replacement
@@ -102,7 +102,7 @@ for (i in 1:length(dfs)) {
   dfs[[i]] <- df
 }
 
-# Reassign filtered data frames back to original variables
+# filtered data frames back to original variables
 hiv_sw_all     <- dfs[[1]]
 hiv_sw_males   <- dfs[[2]]
 hiv_sw_females <- dfs[[3]]
@@ -274,7 +274,7 @@ for (i in 1:length(dfs)) {
 
 ## meta regression
 
-# Apply strata summary meta-regression to each dataframe
+# apply meta-regression to each df
 meta_regress_hiv_sw_all_strata     <- meta_regress_strata_summary(hiv_sw_all)
 meta_regress_hiv_sw_males_strata   <- meta_regress_strata_summary(hiv_sw_males)
 meta_regress_hiv_sw_females_strata <- meta_regress_strata_summary(hiv_sw_females)
@@ -284,7 +284,7 @@ meta_regress_hcv_sw_males_strata   <- meta_regress_strata_summary(hcv_sw_males)
 meta_regress_hcv_sw_females_strata <- meta_regress_strata_summary(hcv_sw_females)
 meta_regress_hcv_msm_strata        <- meta_regress_strata_summary(hcv_msm)
 
-# Write to Excel
+# save
 writexl::write_xlsx(
   list(
     hiv_sw_all     = meta_regress_hiv_sw_all_strata,
@@ -366,7 +366,7 @@ test_publication_bias(
   plot_filename = "code/plots/publication bias/funnel_hcv_msm_unadj.png"
 )
 
-# Create a list of filtered dataframes and plot titles
+# filtered dataframes and plot titles
 funnel_dfs <- list(
   hiv_sw_all     = hiv_sw_all %>% filter(exposure_time_frame_bin == "recent"),
   hiv_sw_males   = hiv_sw_males %>% filter(exposure_time_frame_bin == "recent"),
@@ -382,33 +382,33 @@ titles <- c(
   "HCV SW All", "HCV SW Males", "HCV SW Females", "HCV MSM"
 )
 
-# Open a PNG device for a 2x4 grid
+# filename
 png("code/plots/publication bias/funnel_combined_recent_unadj.png", width = 2400, height = 1200, res = 200)
 par(mfrow = c(2, 4), oma = c(0, 0, 2, 0)) # 2 rows, 4 columns
 
 for (i in seq_along(funnel_dfs)) {
   df <- funnel_dfs[[i]]
   
-  # Set up colors based on pub_status
+  # colors based on pub_status
   pub_status_levels <- unique(df$pub_status)
   colors <- rainbow(length(pub_status_levels))
   names(colors) <- pub_status_levels
   point_colors <- colors[df$pub_status]
   
-  # Fit meta-analysis model
+  # meta-analysis model
   res <- metafor::rma(yi = df$effect_unadj_ln, sei = df$effect_unadj_se, method = "DL")
   
   # Egger's test
   egger <- metafor::regtest(res, model = "rma", predictor = "sei")
   
-  # Create title with p-value
+  # title with p-value
   p_value <- round(egger$pval, 3)
   plot_title <- paste0(titles[i], "\nEgger's test p = ", p_value)
   
-  # Create funnel plot with colors
+  # funnel plot with colors
   metafor::funnel(res, main = plot_title, col = point_colors, pch = 19)
   
-  # Add legend to each plot
+  # legend
   legend("topright", 
          legend = names(colors), 
          col = colors, 
@@ -478,33 +478,33 @@ test_publication_bias(
   plot_filename = "code/plots/publication bias/funnel_hcv_msm_lifetime_unadj.png"
 )
 
-# Open a PNG device for a 2x4 grid for lifetime
+# filename
 png("code/plots/publication bias/funnel_combined_lifetime_unadj.png", width = 2400, height = 1200, res = 200)
 par(mfrow = c(2, 4), oma = c(0, 0, 2, 0)) # 2 rows, 4 columns
 
 for (i in seq_along(funnel_dfs_lifetime)) {
   df <- funnel_dfs_lifetime[[i]]
   
-  # Set up colors based on pub_status
+  # colors based on pub_status
   pub_status_levels <- unique(df$pub_status)
   colors <- rainbow(length(pub_status_levels))
   names(colors) <- pub_status_levels
   point_colors <- colors[df$pub_status]
   
-  # Fit meta-analysis model
+  # meta-analysis model
   res <- metafor::rma(yi = df$effect_unadj_ln, sei = df$effect_unadj_se, method = "DL")
   
   # Egger's test
   egger <- metafor::regtest(res, model = "rma", predictor = "sei")
   
-  # Create title with p-value
+  # title with p-value
   p_value <- round(egger$pval, 3)
   plot_title <- paste0(titles_lifetime[i], "\nEgger's test p = ", p_value)
   
-  # Create funnel plot with colors
+  # funnel plot with colors
   metafor::funnel(res, main = plot_title, col = point_colors, pch = 19)
   
-  # Add legend to each plot
+  # legend
   legend("topright", 
          legend = names(colors), 
          col = colors, 
@@ -517,21 +517,21 @@ for (i in seq_along(funnel_dfs_lifetime)) {
 mtext("Funnel Plots for Publication Bias (Lifetime Unadjusted Estimates)", outer = TRUE, cex = 1.5)
 dev.off()
 
-# Function to perform Egger's test by publication status
+# Egger's test by publication status
 egger_test_by_pub_status <- function(df, yi_col, sei_col) {
-  # Remove rows with missing values
+  # remove missing values
   df <- df %>% filter(!is.na(.data[[yi_col]]), !is.na(.data[[sei_col]]))
   
   results <- list()
   
-  # Get unique publication statuses
+  # unique publication statuses
   pub_statuses <- unique(df$pub_status)
   
   for (status in pub_statuses) {
     subset_df <- df %>% filter(pub_status == status)
     
     if (nrow(subset_df) >= 3) {  # Need at least 3 studies for Egger's test
-      # Fit random-effects model
+      # random-effects model
       res <- metafor::rma(yi = subset_df[[yi_col]], sei = subset_df[[sei_col]], method = "DL")
       
       # Egger's test
@@ -572,7 +572,6 @@ egger_test_by_pub_status <- function(df, yi_col, sei_col) {
   return(results)
 }
 
-# Apply to each dataset (recent exposure)
 egger_by_pub_status_results <- list()
 
 datasets <- list(
@@ -598,7 +597,7 @@ for (dataset_name in names(datasets)) {
   )
 }
 
-# Create a summary table
+# summary table
 create_egger_summary_table <- function(results_list) {
   summary_rows <- list()
   
@@ -625,11 +624,11 @@ create_egger_summary_table <- function(results_list) {
   return(bind_rows(summary_rows))
 }
 
-# Create summary table
+# summary table
 egger_summary_table <- create_egger_summary_table(egger_by_pub_status_results)
 
-# Save to Excel
+# save
 write_xlsx(egger_summary_table, "code/egger_test_by_publication_status.xlsx")
 
-# Print summary table
+# summary table
 print(egger_summary_table)

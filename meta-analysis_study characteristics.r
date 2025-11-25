@@ -11,62 +11,11 @@ setwd("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/
 # load dataframe
 study_characteristics <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "Study characteristics") 
 
-# study_characteristics_details
-study_characteristics_details <- study_characteristics %>%
-  select(study, journal, year_pub, cohort, city, design, sampling, recruitment_location)
-
-# study_characteristics_participants
-study_characteristics_participants <- study_characteristics %>%
-  select(study, average_age, perc_prison, perc_homeless, perc_oat, inj_duration)
-
-# study_characteristics_outcomes
-study_characteristics_outcomes <- study_characteristics %>%
-  select(study, hiv_sample_size, hcv_sample_size, hiv_cases, hiv_follow_up_years, hiv_inc, hiv_inc_95ci, 
-         hcv_cases, hcv_follow_up_years, hcv_inc, hcv_inc_95ci, incidence_assessment, testing_frequency_mths)
-
-# Filter study_characteristics_details for HIV studies
-study_characteristics_details_hiv <- study_characteristics_details %>%
-  filter(study %in% (study_characteristics %>% filter(hiv == "Yes") %>% pull(study)))
-
-# Filter study_characteristics_details for HCV studies  
-study_characteristics_details_hcv <- study_characteristics_details %>%
-  filter(study %in% (study_characteristics %>% filter(hcv == "Yes") %>% pull(study)))
-
-# Filter study_characteristics_participants for HIV studies
-study_characteristics_participants_hiv <- study_characteristics_participants %>%
-  filter(study %in% (study_characteristics %>% filter(hiv == "Yes") %>% pull(study)))
-
-# Filter study_characteristics_participants for HCV studies  
-study_characteristics_participants_hcv <- study_characteristics_participants %>%
-  filter(study %in% (study_characteristics %>% filter(hcv == "Yes") %>% pull(study)))
-
-# Filter study_characteristics_outcomes for HIV studies (drop HCV columns)
-study_characteristics_outcomes_hiv <- study_characteristics_outcomes %>%
-  filter(study %in% (study_characteristics %>% filter(hiv == "Yes") %>% pull(study))) %>%
-  select(-c(hcv_sample_size, hcv_cases, hcv_follow_up_years, hcv_inc, hcv_inc_95ci))
-
-# Filter study_characteristics_outcomes for HCV studies (drop HIV columns)
-study_characteristics_outcomes_hcv <- study_characteristics_outcomes %>%
-  filter(study %in% (study_characteristics %>% filter(hcv == "Yes") %>% pull(study))) %>%
-  select(-c(hiv_sample_size, hiv_cases, hiv_follow_up_years, hiv_inc, hiv_inc_95ci))
-
-# Save details Excel sheets
-write_xlsx(study_characteristics_details_hiv, "Drafts/Study characteristics/study_characteristics_details_hiv.xlsx")
-write_xlsx(study_characteristics_details_hcv, "Drafts/Study characteristics/study_characteristics_details_hcv.xlsx")
-
-# Save participants Excel sheets
-write_xlsx(study_characteristics_participants_hiv, "Drafts/Study characteristics/study_characteristics_participants_hiv.xlsx")
-write_xlsx(study_characteristics_participants_hcv, "Drafts/Study characteristics/study_characteristics_participants_hcv.xlsx")
-
-# Save outcomes Excel sheets
-write_xlsx(study_characteristics_outcomes_hiv, "Drafts/Study characteristics/study_characteristics_outcomes_hiv.xlsx")
-write_xlsx(study_characteristics_outcomes_hcv, "Drafts/Study characteristics/study_characteristics_outcomes_hcv.xlsx")
-
-# number of countries
-num_countries <- study_characteristics %>%
-  filter(country != "multiple") %>%
-  summarise(num_countries = n_distinct(country)) %>%
-  ungroup()
+# total number of unique studies
+total_studies <- study_characteristics %>%
+  summarise(unique_studies = n_distinct(study)) %>%
+  pull(unique_studies)
+total_studies
 
 # total number of estimates
 total_estimates <- study_characteristics %>%
@@ -74,76 +23,62 @@ total_estimates <- study_characteristics %>%
   pull(total_estimates)
 total_estimates
 
-## sum of estimates by article_type
-estimates_by_article_type <- study_characteristics %>%
-  filter(article_type %in% c("Unpublished", "Manuscript")) %>%
-  group_by(article_type) %>%
-  summarise(total_estimates = sum(estimates, na.rm = TRUE)) %>%
-  ungroup()
+# total estimates and studies for HIV/HCV
+summary_table <- study_characteristics %>%
+  mutate(group = case_when(
+    hiv == "Yes" & hcv == "Yes" ~ "Both HIV and HCV",
+    hiv == "Yes" & hcv != "Yes" ~ "HIV only",
+    hcv == "Yes" & hiv != "Yes" ~ "HCV only"
+  )) %>%
+  group_by(group) %>%
+  summarise(
+    total_estimates = sum(estimates, na.rm = TRUE),
+    total_studies = n_distinct(study),
+    .groups = "drop"
+  )
 
-# Number of rows where both hiv and hcv == "Yes"
-num_both_yes <- study_characteristics %>%
-  filter(hiv == "Yes", hcv == "Yes") %>%
-  nrow()
+# total estimates and studies for Sex work/MSM
+sw_msm_table <- study_characteristics %>%
+  mutate(group = case_when(
+    sex_work == "Yes" & msm == "Yes" ~ "Both Sex work and MSM",
+    sex_work == "Yes" & msm != "Yes" ~ "Sex work only",
+    msm == "Yes" & sex_work != "Yes" ~ "MSM only"
+  )) %>%
+  group_by(group) %>%
+  summarise(
+    total_estimates = sum(estimates, na.rm = TRUE),
+    total_studies = n_distinct(study),
+    .groups = "drop"
+  )
 
-# Number of rows where hiv == "Yes" and hcv != "Yes"
-num_hiv_yes <- study_characteristics %>%
-  filter(hiv == "Yes", hcv != "Yes") %>%
-  nrow()
-
-# Number of rows where hcv == "Yes" and hiv != "Yes"
-num_hcv_yes <- study_characteristics %>%
-  filter(hcv == "Yes", hiv != "Yes") %>%
-  nrow()
-
-# Table for HIV/HCV overlap
-summary_table <- tibble(
-  group = c("HIV only", "HCV only", "Both HIV and HCV"),
-  n = c(num_hiv_yes, num_hcv_yes, num_both_yes)
-)
-
-# Table for sum of estimates by article_type
+# estimates by article_type
 estimates_table <- estimates_by_article_type %>%
-  rename(group = article_type, n = total_estimates)
+  rename(group = article_type) %>%
+  mutate(
+    total_estimates = sum(estimates, na.rm = TRUE),
+    total_studies = n_distinct(study)
+  )
 
-# Number of rows where both sex_work and msm == "Yes"
-num_both_sw_msm <- study_characteristics %>%
-  filter(sex_work == "Yes", msm == "Yes") %>%
-  nrow()
-
-# Number of rows where sex_work == "Yes" and msm != "Yes"
-num_sex_work_yes <- study_characteristics %>%
-  filter(sex_work == "Yes", msm != "Yes") %>%
-  nrow()
-
-# Number of rows where msm == "Yes" and sex_work != "Yes"
-num_msm_yes <- study_characteristics %>%
-  filter(msm == "Yes", sex_work != "Yes") %>%
-  nrow()
-
-# Table for Sex work/MSM overlap
-sw_msm_table <- tibble(
-  group = c("Sex work only", "MSM only", "Both Sex work and MSM"),
-  n = c(num_sex_work_yes, num_msm_yes, num_both_sw_msm)
-)
-
-# Create total_table for total estimates
+# total row
 total_table <- tibble(
-  group = "Total estimates",
-  n = total_estimates
+  group = "Total",
+  total_estimates = total_estimates,
+  total_studies = total_studies
 )
 
-# Combine all tables
+# combine tables
 final_summary <- bind_rows(
-  summary_table,      # HIV/HCV overlap
-  sw_msm_table,       # Sex work/MSM overlap
-  estimates_table,    # Estimates by article_type
-  total_table         # Total estimates
-)
+  summary_table,
+  sw_msm_table,
+  estimates_table,
+  total_table
+) %>%
+  select(group, total_studies, total_estimates)
 
+# print the final summary table
 print(final_summary)
 
-# Define the columns to keep
+# columns to keep
 cols_to_keep <- c(
   "title", "study", "lead_author", "published", "city", "country", "who_region", "lmic_4cat", "lmic_bin", "msm_decrim", "hiv_crim", "rob_3cat", "cohort", "pub_status", "use", "exposure_time_frame_bin", "incidence_method", "male_num", "male_perc", "msm_num", "msm_perc", "msm_definition", "exposure_time_frame", "exposed_num", "exposed_perc", "exposed_incidence_100py", "exposed_incidence_lb", "exposed_incidence_ub", "unexposed_num", "unexposed_perc", "unexposed_incidence_100py", "unexposed_incidence_lb", "unexposed_incidence_ub", "disease"
 )
@@ -190,7 +125,7 @@ study_counts <- msm_all %>%
 
 print(study_counts)
 
-# 2. Overall number and proportion of individuals reporting recent and lifetime MSM exposure, overall and by disease
+# number and proportion of individuals reporting recent and lifetime MSM exposure, overall and by disease
 msm_exposure_summary <- msm_all %>%
   filter(!is.na(exposure_time_frame_bin)) %>%
   mutate(

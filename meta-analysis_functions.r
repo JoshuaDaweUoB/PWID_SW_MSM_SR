@@ -1,68 +1,6 @@
 #  load packages
 pacman::p_load("tidyverse")
 
-# create best effect variable 
-create_effect_best <- function(df) {
-  # Convert "-" to NA
-  df <- df %>%
-    mutate(
-      effect_adj1 = na_if(effect_adj1, "-"),
-      effect_adj_lb1 = na_if(effect_adj_lb1, "-"),
-      effect_adj_ub1 = na_if(effect_adj_ub1, "-")
-    )
-  
-  print("Before mutate:")
-  print(df %>% select(effect_adj1, effect_unadj))  # Print relevant columns before mutate
-  
-  df <- df %>%
-    mutate(
-      effect_best = ifelse(!is.na(effect_adj1), effect_adj1, effect_unadj),
-      effect_best_lb = ifelse(!is.na(effect_adj_lb1), effect_adj_lb1, effect_unadj_lb),
-      effect_best_ub = ifelse(!is.na(effect_adj_ub1), effect_adj_ub1, effect_unadj_ub)
-    )
-  
-  print("After mutate:")
-  print(df %>% select(effect_adj1, effect_unadj, effect_best))  # Print relevant columns after mutate
-  
-  return(df)
-}
-
-# convert to numeric
-convert_to_numeric <- function(df) {
-  df <- transform(df, 
-                  effect_unadj = as.numeric(effect_unadj), 
-                  effect_unadj_lb = as.numeric(effect_unadj_lb),
-                  effect_unadj_ub = as.numeric(effect_unadj_ub),
-                  effect_adj1 = as.numeric(effect_adj1), 
-                  effect_adj_lb1 = as.numeric(effect_adj_lb1),
-                  effect_adj_ub1 = as.numeric(effect_adj_ub1),
-                  effect_adj2 = as.numeric(effect_adj2), 
-                  effect_adj_lb2 = as.numeric(effect_adj_lb2),
-                  effect_adj_ub2 = as.numeric(effect_adj_ub2),
-                  effect_best = as.numeric(effect_best),
-                  effect_best_lb = as.numeric(effect_best_lb),
-                  effect_best_ub = as.numeric(effect_best_ub))
-  return(df)
-}
-
-# log transform
-log_transform <- function(df) {
-  df <- transform(df, 
-                  effect_unadj_ln = log(effect_unadj),
-                  effect_unadj_lb_ln = log(effect_unadj_lb),
-                  effect_unadj_ub_ln = log(effect_unadj_ub),
-                  effect_adj1_ln = log(effect_adj1),
-                  effect_adj_lb1_ln = log(effect_adj_lb1),
-                  effect_adj_ub1_ln = log(effect_adj_ub1),
-                  effect_adj2_ln = log(effect_adj2),
-                  effect_adj_lb2_ln = log(effect_adj_lb2),
-                  effect_adj_ub2_ln = log(effect_adj_ub2),
-                  effect_best_ln = log(effect_best),
-                  effect_best_lb_ln = log(effect_best_lb),
-                  effect_best_ub_ln = log(effect_best_ub))
-  return(df)
-}
-
 ## replace adj1 with adj2 if missing
 replace_adj1_with_adj2_if_missing <- function(df) {
   df <- df %>%
@@ -289,47 +227,6 @@ recent_adj2_forest_plot <- function(df, exposure_time_frame, effect_col, lower_c
   dev.off()
 }
 
-# recent best estimates
-recent_best_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
-  filtered_df <- df %>% 
-    filter(exposure_time_frame_bin == "recent") %>% 
-    filter(!is.na(effect_best)) %>%
-    filter(effect_best != "NR")
-  
-  forest_plot <- metagen(TE = effect_best_ln,
-                         lower = effect_best_lb_ln,
-                         upper = effect_best_ub_ln,
-                         studlab = study,
-                         data = filtered_df,
-                         sm = "RR",
-                         method.tau = "DL",
-                         common = FALSE,
-                         random = TRUE, 
-                         backtransf = TRUE,
-                         subgroup = pub_status,
-                         text.random = "Overall")
-  summary(forest_plot)
-  
-  print(paste("Saving plot to:", filename))  # Print the filename to confirm
-  png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
-  
-  forest_sw <- forest(forest_plot, 
-                      sortvar = country,
-                      xlim = c(0.2, 4),             
-                      leftcols = c("study", "cohort", "country"),
-                      leftlabs = c("Study", "Cohort", "Country"),
-                      digits = 2,
-                      digits.tau2 = 1,
-                      digits.I2 = 1,
-                      digits.pval.Q = 3,
-                      col.inside = "black",
-                      subgroup.name = "",
-                      subgroup = TRUE,
-                      print.byvar = FALSE,
-                      col.subgroup = "black") 
-  dev.off()
-}
-
 # lifetime unadjusted estimates
 lifetime_unadj_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
   filtered_df <- df %>% 
@@ -500,56 +397,15 @@ lifetime_adj2_forest_plot <- function(df, exposure_time_frame, effect_col, lower
   dev.off()
 }
 
-# lifetime best estimates
-lifetime_best_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
-  filtered_df <- df %>% 
-    filter(exposure_time_frame_bin == "lifetime") %>% 
-    filter(!is.na(effect_best)) %>%
-    filter(effect_best != "NR")
-  
-  forest_plot <- metagen(TE = effect_best_ln,
-                         lower = effect_best_lb_ln,
-                         upper = effect_best_ub_ln,
-                         studlab = study,
-                         data = filtered_df,
-                         sm = "RR",
-                         method.tau = "DL",
-                         common = FALSE,
-                         random = TRUE, 
-                         backtransf = TRUE,
-                         subgroup = pub_status,
-                         text.random = "Overall")
-  summary(forest_plot)
-  
-  print(paste("Saving plot to:", filename))
-  png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
-  
-  forest_sw <- forest(forest_plot, 
-                      sortvar = country,
-                      xlim = c(0.2, 4),             
-                      leftcols = c("country", "cohort"), 
-                      leftlabs = c("Country", "Cohort"),
-                      digits = 2,
-                      digits.tau2 = 1,
-                      digits.I2 = 1,
-                      digits.pval.Q = 3,
-                      col.inside = "black",
-                      subgroup.name = "",
-                      subgroup = TRUE,
-                      print.byvar = FALSE,
-                      col.subgroup = "black") 
-  dev.off()
-}
-
-# subgroup analysis of recent best estimates
+# subgroup analysis of recent estimates
 
 # Function to conduct subgroup analyses
-subgroup_analysis_recent_best <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, subgroup_vars, base_filename) {
+subgroup_analysis_recent <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, subgroup_vars, base_filename) {
   # Filter the dataframe for recent exposure time frame
   filtered_df <- df %>%
     filter(exposure_time_frame_bin == "recent") %>%
-    filter(!is.na(effect_best)) %>%
-    filter(effect_best != "NR")
+    filter(!is.na(effect_unadj_ln)) %>%
+    filter(effect_unadj_ln != "NR")
   
   # Loop through each subgroup variable
   for (subgroup_var in subgroup_vars) {
@@ -598,21 +454,21 @@ subgroup_analysis_recent_best <- function(df, exposure_time_frame, effect_col, l
   }
 }
 
-# Function to conduct subgroup analyses for unadjusted estimates
+# conduct subgroup analyses for unadjusted estimates
 subgroup_analysis_recent_unadj <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
-  # Filter the dataframe for recent exposure time frame and non-missing unadjusted estimates
+  # recent exposure 
   filtered_df <- df %>%
     filter(exposure_time_frame_bin == "recent") %>%
     filter(!is.na(effect_unadj_ln)) %>%
     filter(effect_unadj_ln != "NR")
   
-  # Loop through each subgroup variable
+  # loop through subgroup variables
   for (subgroup_var in subgroup_vars) {
-    # Filter out rows with missing values in the subgroup variable
+    # exclude rows with missing values in subgroup variables
     subgroup_filtered_df <- filtered_df %>%
       filter(!is.na(.data[[subgroup_var]]))
     
-    # Generate the forest plot for the current subgroup
+    # forest plot for subgroups
     forest_plot <- metagen(
       TE = subgroup_filtered_df$effect_unadj_ln,
       lower = subgroup_filtered_df$effect_unadj_lb_ln,
@@ -628,10 +484,10 @@ subgroup_analysis_recent_unadj <- function(df, exposure_time_frame, studlab_col,
       text.random = "Overall"
     )
     
-    # Construct the filename for the current subgroup plot
+    # filename for subgroup plot
     subgroup_filename <- gsub("\\.png$", paste0("_", subgroup_var, ".png"), base_filename)
     
-    # Save the forest plot as a PNG
+    # save
     png(filename = subgroup_filename, width = 30, height = 20, units = "cm", res = 500)
     forest(
       forest_plot,
@@ -653,21 +509,21 @@ subgroup_analysis_recent_unadj <- function(df, exposure_time_frame, studlab_col,
   }
 }
 
-# Function to conduct subgroup analyses for recent adjusted estimates
+# subgroup analyses for recent adjusted
 subgroup_analysis_recent_adj1 <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
-  # Filter the dataframe for recent exposure time frame and non-missing adjusted estimates
+  # recent exposure time frame
   filtered_df <- df %>%
     filter(exposure_time_frame_bin == "recent") %>%
     filter(!is.na(effect_adj1_ln)) %>%
     filter(effect_adj1_ln != "NR")
   
-  # Loop through each subgroup variable
+  # loop through subgroup variables
   for (subgroup_var in subgroup_vars) {
-    # Filter out rows with missing values in the subgroup variable
+    # remove rows with missing values in the subgroup variable
     subgroup_filtered_df <- filtered_df %>%
       filter(!is.na(.data[[subgroup_var]]))
     
-    # Generate the forest plot for the current subgroup
+    # forest plot for the current subgroup
     forest_plot <- metagen(
       TE = subgroup_filtered_df$effect_adj1_ln,
       lower = subgroup_filtered_df$effect_adj_lb1_ln,
@@ -683,10 +539,10 @@ subgroup_analysis_recent_adj1 <- function(df, exposure_time_frame, studlab_col, 
       text.random = "Overall"
     )
     
-    # Construct the filename for the current subgroup plot
+    # filename for the current subgroup plot
     subgroup_filename <- gsub("\\.png$", paste0("_", subgroup_var, ".png"), base_filename)
     
-    # Save the forest plot as a PNG
+    # save
     png(filename = subgroup_filename, width = 30, height = 20, units = "cm", res = 500)
     forest(
       forest_plot,
@@ -708,95 +564,94 @@ subgroup_analysis_recent_adj1 <- function(df, exposure_time_frame, studlab_col, 
   }
 }
 
-## meta regression
-
+# meta regression
 meta_regress_strata_summary <- function(df) {
   filtered_df <- df %>%
     filter(use == "yes") %>%
     filter(exposure_time_frame_bin == "recent") %>%
-    filter(!is.na(effect_best_ln)) %>%
-    filter(effect_best_ln != "NR")
+    filter(!is.na(effect_unadj_ln))
 
   filtered_df$inj_age_num <- suppressWarnings(readr::parse_number(filtered_df$inj_age))
 
-  # Ensure "Good" group is identical for rob_3cat1 and rob_3cat2
   if ("rob_3cat" %in% names(filtered_df)) {
     idx <- filtered_df$rob_3cat %in% c("Good", "Satisfactory", "Very good")
     filtered_df <- filtered_df[idx, , drop = FALSE]
-    # rob_3cat1: Good vs Satisfactory
     filtered_df$rob_3cat1 <- ifelse(filtered_df$rob_3cat == "Satisfactory", 1,
                                     ifelse(filtered_df$rob_3cat == "Good", 0, NA))
-    # rob_3cat2: Good vs Very good
     filtered_df$rob_3cat2 <- ifelse(filtered_df$rob_3cat == "Very good", 1,
                                     ifelse(filtered_df$rob_3cat == "Good", 0, NA))
   }
 
-  continuous_vars <- c("age", "inj_age_num", "oat_perc", "homeless_perc", "prison_perc")
+  continuous_vars <- c("age", "female_perc", "inj_age_num", "oat_perc", "homeless_perc", "prison_perc")
   categorical_vars <- c("2016_bin", "incidence_method", "lmic_bin", "rob_3cat1", "rob_3cat2", "pub_status")
   vars <- c(categorical_vars, continuous_vars)
 
-  # Store medians for continuous variables
   medians_used <- list()
-
-  # Dichotomize continuous variables by median
   for (v in continuous_vars) {
     if (v %in% names(filtered_df)) {
-      filtered_df[[v]] <- as.numeric(filtered_df[[v]])
+      filtered_df[[v]] <- suppressWarnings(as.numeric(filtered_df[[v]]))
+      if (any(is.na(filtered_df[[v]]))) {
+        warning("Variable ", v, " contains non-numeric values and has been partially converted.")
+      }
       med <- median(filtered_df[[v]], na.rm = TRUE)
       medians_used[[v]] <- med
       filtered_df[[v]] <- ifelse(filtered_df[[v]] >= med, 1, 0)
     }
   }
 
-  # For categorical variables, convert to factor and then to 0/1 if binary
   levels_used <- list()
   for (v in categorical_vars) {
     if (v %in% names(filtered_df)) {
-      filtered_df[[v]] <- as.factor(filtered_df[[v]])
-      lvls <- levels(droplevels(filtered_df[[v]]))
-      levels_used[[v]] <- paste(lvls, collapse = ";")
-      if (length(lvls) == 2) {
-        filtered_df[[v]] <- as.numeric(filtered_df[[v]]) - 1  # 0/1 coding
+      if (is.character(filtered_df[[v]]) || is.factor(filtered_df[[v]])) {
+        filtered_df[[v]] <- as.factor(filtered_df[[v]])
+        lvls <- levels(droplevels(filtered_df[[v]]))
+        levels_used[[v]] <- paste(lvls, collapse = ";")
+        if (length(lvls) == 2) {
+          filtered_df[[v]] <- as.numeric(filtered_df[[v]]) - 1
+        } else {
+          warning("Variable ", v, " has more than two levels and will be retained as a factor.")
+        }
       } else {
-        filtered_df[[v]] <- NA
+        warning("Variable ", v, " is not categorical and cannot be converted.")
       }
     }
   }
 
   results <- list()
-
   for (v in vars) {
-    if (!(v %in% names(filtered_df))) next
+    if (!(v %in% names(filtered_df))) {
+      warning("Variable ", v, " is missing from the dataframe.")
+      next
+    }
     dat <- filtered_df %>% filter(!is.na(.data[[v]]))
     lvls <- if (v %in% names(levels_used)) levels_used[[v]] else NA_character_
     med_cutoff <- if (v %in% names(medians_used)) medians_used[[v]] else NA_real_
     if (nrow(dat) > 2 && length(unique(dat[[v]])) > 1) {
-      # Meta-regression with stratum as moderator
       dat$group <- as.factor(dat[[v]])
       res_mod <- tryCatch(
         metafor::rma(
-          yi = effect_best_ln,
-          sei = (effect_best_ub_ln - effect_best_lb_ln) / (2 * 1.96),
+          yi = effect_unadj_ln,
+          sei = dat$effect_unadj_se,
           mods = ~ group,
           data = dat,
           method = "DL"
         ),
-        error = function(e) NULL
+        error = function(e) {
+          message("Error in meta-regression for variable: ", v, " - ", e$message)
+          NULL
+        }
       )
 
-      # Extract RR for reference (intercept) and comparison (intercept + group1)
       logRR0 <- if (!is.null(res_mod)) as.numeric(res_mod$b[1]) else NA
       logRR1 <- if (!is.null(res_mod) && length(res_mod$b) > 1) as.numeric(res_mod$b[1] + res_mod$b[2]) else NA
       RR0 <- if (!is.null(res_mod)) exp(logRR0) else NA
       RR1 <- if (!is.null(res_mod) && length(res_mod$b) > 1) exp(logRR1) else NA
 
-      # 95% CI for RR_stratum0 and RR_stratum1
       RR0_lb <- if (!is.null(res_mod)) exp(res_mod$ci.lb[1]) else NA
       RR0_ub <- if (!is.null(res_mod)) exp(res_mod$ci.ub[1]) else NA
       RR1_lb <- if (!is.null(res_mod) && length(res_mod$ci.lb) > 1) exp(res_mod$ci.lb[1] + res_mod$ci.lb[2]) else NA
       RR1_ub <- if (!is.null(res_mod) && length(res_mod$ci.ub) > 1) exp(res_mod$ci.ub[1] + res_mod$ci.ub[2]) else NA
 
-      # Ratio of ratios
       logRR_ratio <- if (!is.null(res_mod) && length(res_mod$b) > 1) as.numeric(res_mod$b[2]) else NA
       se_logRR_ratio <- if (!is.null(res_mod) && length(res_mod$vb) > 1) sqrt(res_mod$vb[2,2]) else NA
       RR_ratio <- if (!is.na(logRR_ratio)) exp(logRR_ratio) else NA
@@ -845,36 +700,56 @@ meta_regress_strata_summary <- function(df) {
       )
     }
   }
+  if (length(results) == 0) {
+    return(tibble::tibble(
+      variable = character(),
+      levels_used = character(),
+      median_cutoff = numeric(),
+      RR_stratum0 = numeric(),
+      RR_stratum0_lb = numeric(),
+      RR_stratum0_ub = numeric(),
+      RR_stratum1 = numeric(),
+      RR_stratum1_lb = numeric(),
+      RR_stratum1_ub = numeric(),
+      RR_ratio = numeric(),
+      RR_ratio_lb = numeric(),
+      RR_ratio_ub = numeric(),
+      RR_estimates0 = integer(),
+      RR_estimates1 = integer(),
+      tau2_ratio = numeric(),
+      R2_ratio = numeric()
+    ))
+  }
   dplyr::bind_rows(results)
 }
 
 ## publication bias
 test_publication_bias <- function(df, yi_col, sei_col, plot_filename = NULL) {
-  # Remove rows with missing values
+  # remove rows with missing values
   df <- df %>% filter(!is.na(.data[[yi_col]]), !is.na(.data[[sei_col]]))
   
-  # Fit random-effects model
+  # random-effects model
   res <- metafor::rma(yi = df[[yi_col]], sei = df[[sei_col]], method = "DL")
   
   # Egger's test
   egger <- metafor::regtest(res, model = "rma", predictor = "sei")
   
-  # Create title with p-value
+  # title with p-value
   p_value <- round(egger$pval, 3)
   plot_title <- paste0("Funnel plot\nEgger's test p = ", p_value)
   
-  # Set up colors based on pub_status
+  # colors based on pub_status
   pub_status_levels <- unique(df$pub_status)
   colors <- rainbow(length(pub_status_levels))
   names(colors) <- pub_status_levels
   point_colors <- colors[df$pub_status]
   
-  # Funnel plot
+  # funnel plot
   if (!is.null(plot_filename)) {
     png(plot_filename, width = 1200, height = 900, res = 150)
     metafor::funnel(res, main = plot_title, col = point_colors, pch = 19)
     
-    # Add legend
+    # legend
     legend("topright", 
            legend = names(colors), 
            col = colors, 
@@ -885,7 +760,7 @@ test_publication_bias <- function(df, yi_col, sei_col, plot_filename = NULL) {
   } else {
     metafor::funnel(res, main = plot_title, col = point_colors, pch = 19)
     
-    # Add legend
+    # legend
     legend("topright", 
            legend = names(colors), 
            col = colors, 
