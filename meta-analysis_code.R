@@ -22,12 +22,10 @@ study_characteristics <- read_excel("Data extraction/Full data extraction.xlsx",
 # define dataframes and lists
 dfs <- list(hiv_sw_all, hiv_sw_males, hiv_sw_females, hiv_msm, hcv_sw_all, hcv_sw_males, hcv_sw_females, hcv_msm)
 rec_unadj <- c("sw_recent_hiv_all_unadj.png", "sw_recent_hiv_males_unadj.png", "sw_recent_hiv_females_unadj.png", "sw_recent_hiv_msm_unadj.png", "sw_recent_hcv_all_unadj.png", "sw_recent_hcv_males_unadj.png", "sw_recent_hcv_females_unadj.png", "sw_recent_hcv_msm_unadj.png")
-rec_adj1 <- c("sw_recent_hiv_all_adj1.png", "sw_recent_hiv_males_adj1.png", "sw_recent_hiv_females_adj1.png", "sw_recent_hiv_msm_adj1.png", "sw_recent_hcv_all_adj1.png", "sw_recent_hcv_males_adj1.png", "sw_recent_hcv_females_adj1.png", "sw_recent_hcv_msm_adj1.png")
-rec_adj2 <- c("sw_recent_hiv_all_adj2.png", "sw_recent_hiv_males_adj2.png", "sw_recent_hiv_females_adj2.png", "sw_recent_hiv_msm_adj2.png", "sw_recent_hcv_all_adj2.png", "sw_recent_hcv_males_adj2.png", "sw_recent_hcv_females_adj2.png", "sw_recent_hcv_msm_adj2.png")
-rec_best <- c("sw_recent_hiv_all_best.png", "sw_recent_hiv_males_best.png", "sw_recent_hiv_females_best.png", "sw_recent_hiv_msm_best.png", "sw_recent_hcv_all_best.png", "sw_recent_hcv_males_best.png", "sw_recent_hcv_females_best.png", "sw_recent_hcv_msm_best.png")
+rec_adj <- c("sw_recent_hiv_all_adj.png", "sw_recent_hiv_males_adj.png", "sw_recent_hiv_females_adj.png", "sw_recent_hiv_msm_adj.png", "sw_recent_hcv_all_adj.png", "sw_recent_hcv_males_adj.png", "sw_recent_hcv_females_adj.png", "sw_recent_hcv_msm_adj.png")
 sheet_names <- c("HIV_Sex_Work_All", "HIV_Sex_Work_Males", "HIV_Sex_Work_Females", "HIV_MSM", "HCV_Sex_Work_All", "HCV_Sex_Work_Males", "HCV_Sex_Work_Females", "HCV_MSM")
 subgroup_names <- c("pub_status", "2016_bin", "incidence_method", "who_region", "lmic_bin", "hiv_crim", "rob_3cat", "hiv_inc_bin", "hcv_inc_bin")
-rec_best_subgroup <- c("recent_hiv_all_best_subgroup.png", "recent_hiv_males_best_subgroup.png", "recent_hiv_females_best_subgroup.png", "recent_hiv_msm_best_subgroup.png", "recent_hcv_all_best_subgroup.png", "recent_hcv_males_best_subgroup.png", "recent_hcv_females_best_subgroup.png", "recent_hcv_msm_best_subgroup.png")
+rec_unadj_subgroup <- c("recent_hiv_all_subgroup.png", "recent_hiv_males_subgroup.png", "recent_hiv_females_subgroup.png", "recent_hiv_msm_subgroup.png", "recent_hcv_all_subgroup.png", "recent_hcv_males_subgroup.png", "recent_hcv_females_subgroup.png", "recent_hcv_msm_subgroup.png")
 
 # data cleaning
 
@@ -35,14 +33,14 @@ rec_best_subgroup <- c("recent_hiv_all_best_subgroup.png", "recent_hiv_males_bes
 study_characteristics <- study_characteristics %>%
   select(study, hiv_cases, hiv_follow_up_years, hiv_inc, hiv_inc_95ci, 
          hcv_cases, hcv_follow_up_years, hcv_inc, hcv_inc_95ci) %>%
-  # conver incidence cols to numeric, treating "NR", "NA", "-" as NA
+  # conver incidence cols to numeric, treating NR as NA
   mutate(
     hiv_inc = case_when(
-      hiv_inc %in% c("NR", "NA", "-", "", "na", "n/a", "N/A") ~ NA_real_,
+      hiv_inc %in% c("NR") ~ NA_real_,
       TRUE ~ as.numeric(hiv_inc)
     ),
     hcv_inc = case_when(
-      hcv_inc %in% c("NR", "NA", "-", "", "na", "n/a", "N/A") ~ NA_real_,
+      hcv_inc %in% c("NR") ~ NA_real_,
       TRUE ~ as.numeric(hcv_inc)
     )
   ) %>%
@@ -77,27 +75,23 @@ hcv_sw_males   <- dfs[[6]]
 hcv_sw_females <- dfs[[7]]
 hcv_msm        <- dfs[[8]]
 
-# convert to numeric first
+# merge study characteristics
+dfs <- merge_study_characteristics(dfs, study_characteristics)
+
+# Assign the updated dataframes back to their original variables
+hiv_sw_all     <- dfs[[1]]
+hiv_sw_males   <- dfs[[2]]
+hiv_sw_females <- dfs[[3]]
+hiv_msm        <- dfs[[4]]
+hcv_sw_all     <- dfs[[5]]
+hcv_sw_males   <- dfs[[6]]
+hcv_sw_females <- dfs[[7]]
+hcv_msm        <- dfs[[8]]
+
+# convert to numeric and log transform
 for (i in 1:length(dfs)) {
   df <- dfs[[i]]
-  df <- create_effect_best(df)
   df <- convert_to_numeric(df)
-  dfs[[i]] <- df
-}
-
-# keep where use equals "yes"
-for (i in 1:length(dfs)) {
-  df <- dfs[[i]]
-  df <- filter_use_yes(df)
-  dfs[[i]] <- df
-}
-
-# replace_adj2_with_adj1_if_missing to each dataframe in dfs
-dfs <- purrr::map(dfs, replace_adj2_with_adj1_if_missing)
-
-# log transform after replacement
-for (i in 1:length(dfs)) {
-  df <- dfs[[i]]
   df <- log_transform(df)
   dfs[[i]] <- df
 }
@@ -115,73 +109,35 @@ hcv_msm        <- dfs[[8]]
 # recent unadjusted forest plots
 for (i in 1:length(dfs)) {
   filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/unadjusted/recent/", rec_unadj[i])
-  print(filename)  # Print the filename to confirm
+  print(filename)
   recent_unadj_forest_plot(dfs[[i]], "recent", "effect_unadj_ln", "effect_unadj_lb_ln", "effect_unadj_ub_ln", "lead_author", "pub_status", filename)
 }
 
 # recent adjusted forest plots
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/adjusted1/recent/", rec_adj1[i])
-  print(filename)  # Print the filename to confirm
-  recent_adj1_forest_plot(dfs[[i]], "recent", "effect_adj1_ln", "effect_adj_lb1_ln", "effect_adj_ub1_ln", "lead_author", "pub_status", filename)
-}
-
-# recent adjusted forest plots - injecting risk factors
-for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/adjusted2/recent/", rec_adj2[i])
-  print(filename)  # Print the filename to confirm
-  recent_adj2_forest_plot(dfs[[i]], "recent", "effect_adj2_ln", "effect_adj2_lb_ln", "effect_adj2_ub_ln", "lead_author", "pub_status", filename)
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/adjusted/recent/", rec_adj[i])
+  print(filename)
+  recent_adj_forest_plot(dfs[[i]], "recent", "effect_adj_ln", "effect_adj_lb_ln", "effect_adj_ub_ln", "lead_author", "pub_status", filename)
 }
 
 # lifetime unadjusted forest plots
 for (i in 1:length(dfs)) {
   filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/unadjusted/lifetime/", gsub("recent", "lifetime", rec_unadj[i]))
-  print(filename)  # Print the filename to confirm
+  print(filename)
   lifetime_unadj_forest_plot(dfs[[i]], "lifetime", "effect_unadj_ln", "effect_unadj_lb_ln", "effect_unadj_ub_ln", "lead_author", "pub_status", filename)
 }
 
-# lifetime adjusted forest plots - structural factors only
+# lifetime adjusted forest plots
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/adjusted1/lifetime/", gsub("recent", "lifetime", rec_adj1[i]))
-  print(filename)  # Print the filename to confirm
-  lifetime_adj1_forest_plot(dfs[[i]], "lifetime", "effect_adj1_ln", "effect_adj_lb1_ln", "effect_adj_ub1_ln", "lead_author", "pub_status", filename)
-}
-
-# lifetime adjusted forest plots - injecting risk factors
-for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/adjusted2/lifetime/", gsub("recent", "lifetime", rec_adj2[i]))
-  print(filename)  # Print the filename to confirm
-  lifetime_adj2_forest_plot(dfs[[i]], "lifetime", "effect_adj2_ln", "effect_adj2_lb_ln", "effect_adj2_ub_ln", "lead_author", "pub_status", filename)
-}
-
-# lifetime best effect forest plots
-for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/combined/lifetime/", gsub("recent", "lifetime", rec_best[i]))
-  print(filename)  # Print the filename to confirm
-  lifetime_best_forest_plot(dfs[[i]], "lifetime", "effect_best_ln", "effect_best_lb_ln", "effect_best_ub_ln", "lead_author", "pub_status", filename)
-}
-
-# append dataframes to make three forest plots in one figure for HIV and HCV
-combine_and_convert <- function(dfs, idx, labels, desired_cols) {
-  combined <- purrr::map2(dfs[idx], labels, ~ .x %>%
-    mutate(df = .y) %>%
-    select(all_of(desired_cols)) %>%
-    mutate(across(all_of(desired_cols), as.character))
-  ) %>%
-    bind_rows() %>%
-    mutate(
-      effect_unadj_ln = as.numeric(effect_unadj_ln),
-      effect_unadj_lb_ln = as.numeric(effect_unadj_lb_ln),
-      effect_unadj_ub_ln = as.numeric(effect_unadj_ub_ln)
-    )
-  return(combined)
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/adjusted/lifetime/", gsub("recent", "lifetime", rec_adj[i]))
+  print(filename)
+  lifetime_adj_forest_plot(dfs[[i]], "lifetime", "effect_adj_ln", "effect_adj_lb1_ln", "effect_adj_ub_ln", "lead_author", "pub_status", filename)
 }
 
 desired_cols <- c(
   "study", "rob_3cat", "cohort", "pub_status", "use", "year_start", "year_end", "mid_year", "2016_bin", "exposure_time_frame_bin", "country", "df",
   "moa_unadj", "effect_unadj", "effect_unadj_lb", "effect_unadj_ub", "effect_unadj_p",
-  "moa_adj1", "effect_adj1", "effect_adj_lb1", "effect_adj_ub1", "effect_adj_p1", "effect_adj1_vars",
-  "moa_adj2", "effect_adj2", "effect_adj_lb2", "effect_adj_ub2", "effect_adj_p2", "effect_adj2_vars",
+  "moa_adj", "effect_adj", "effect_adj_lb", "effect_adj_ub", "effect_adj_p", "effect_adj_vars",
   "effect_unadj_ln", "effect_unadj_lb_ln", "effect_unadj_ub_ln"
 )
 

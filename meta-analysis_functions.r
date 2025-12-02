@@ -1,35 +1,47 @@
 #  load packages
 pacman::p_load("tidyverse")
 
-## replace adj1 with adj2 if missing
-replace_adj1_with_adj2_if_missing <- function(df) {
-  df <- df %>%
-    mutate(
-      effect_adj1 = ifelse(is.na(effect_adj1), effect_adj2, effect_adj1),
-      effect_adj_lb1 = ifelse(is.na(effect_adj_lb1), effect_adj_lb2, effect_adj_lb1),
-      effect_adj_ub1 = ifelse(is.na(effect_adj_ub1), effect_adj_ub2, effect_adj_ub1),
-      moa_adj1 = ifelse(is.na(moa_adj1) | moa_adj1 == "NR", moa_adj2, moa_adj1)
-    )
+# convert to numeric
+convert_to_numeric <- function(df) {
+  df <- transform(df, 
+                  effect_unadj = as.numeric(effect_unadj), 
+                  effect_unadj_lb = as.numeric(effect_unadj_lb),
+                  effect_unadj_ub = as.numeric(effect_unadj_ub),
+                  effect_adj = as.numeric(effect_adj), 
+                  effect_adj_lb = as.numeric(effect_adj_lb),
+                  effect_adj_ub = as.numeric(effect_adj_ub))
   return(df)
 }
 
-## replace adj2 with adj1 if missing
-replace_adj2_with_adj1_if_missing <- function(df) {
-  df <- df %>%
-    mutate(
-      effect_adj2 = ifelse(is.na(effect_adj2), effect_adj1, effect_adj2),
-      effect_adj_lb2 = ifelse(is.na(effect_adj_lb2), effect_adj_lb1, effect_adj_lb2),
-      effect_adj_ub2 = ifelse(is.na(effect_adj_ub2), effect_adj_ub1, effect_adj_ub2),
-      moa_adj2 = ifelse(is.na(moa_adj2) | moa_adj2 == "NR", moa_adj1, moa_adj2)
-    )
+# log transform
+log_transform <- function(df) {
+  df <- transform(df, 
+                  effect_unadj_ln = log(effect_unadj),
+                  effect_unadj_lb_ln = log(effect_unadj_lb),
+                  effect_unadj_ub_ln = log(effect_unadj_ub),
+                  effect_adj_ln = log(effect_adj),
+                  effect_adj_lb_ln = log(effect_adj_lb),
+                  effect_adj_ub_ln = log(effect_adj_ub))
   return(df)
 }
 
-# keep studies where use equals "yes"
-filter_use_yes <- function(df) {
-  df <- df %>%
-    filter(use == "yes")
-  return(df)
+# recode oat, homelessness and prison to NA if lifetime is reported
+recode_to_na <- function(df) {
+  df %>%
+    mutate(
+      oat_perc = case_when(
+        oat_time_frame_bin == "Lifetime" ~ NA_real_,
+        TRUE ~ oat_perc
+      ),
+      homeless_perc = case_when(
+        homeless_time_frame_bin == "Lifetime" ~ NA_real_,
+        TRUE ~ homeless_perc
+      ),
+      prison_perc = case_when(
+        prison_time_frame_bin == "Lifetime" ~ NA_real_,
+        TRUE ~ prison_perc
+      )
+    )
 }
 
 # function to save dataframes as Excel sheets
@@ -120,7 +132,7 @@ recent_unadj_forest_plot_combined <- function(df, exposure_time_frame, effect_co
   )
   summary(forest_plot)
   
-  print(paste("Saving plot to:", filename))  # Print the filename to confirm
+  print(paste("Saving plot to:", filename))
   png(filename = filename, width = 35, height = 35, units = "cm", res = 500)
   
   forest_sw <- forest(
@@ -138,23 +150,23 @@ recent_unadj_forest_plot_combined <- function(df, exposure_time_frame, effect_co
     subgroup = TRUE,
     print.byvar = FALSE,
     col.subgroup = "black",
-    overall = FALSE,             # Remove overall pooled estimate
-    overall.hetstat = FALSE,     # Remove overall heterogeneity
-    test.subgroup = FALSE        # Remove test for subgroup differences
+    overall = FALSE,
+    overall.hetstat = FALSE,
+    test.subgroup = FALSE
   ) 
   dev.off()
 }
 
-# recent adjusted estimates (structural factors)
-recent_adj1_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
+# recent adjusted estimates
+recent_adj_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
   filtered_df <- df %>% 
     filter(exposure_time_frame_bin == "recent") %>% 
-    filter(!is.na(moa_adj1)) %>%
-    filter(moa_adj1 != "NR")
+    filter(!is.na(moa_adj)) %>%
+    filter(moa_adj != "NR")
   
-  forest_plot <- metagen(TE = effect_adj1_ln,
-                         lower = effect_adj_lb1_ln,
-                         upper = effect_adj_ub1_ln,
+  forest_plot <- metagen(TE = effect_adj_ln,
+                         lower = effect_adj_lb_ln,
+                         upper = effect_adj_ub_ln,
                          studlab = study,
                          data = filtered_df,
                          sm = "RR",
@@ -166,48 +178,7 @@ recent_adj1_forest_plot <- function(df, exposure_time_frame, effect_col, lower_c
                          text.random = "Overall")
   summary(forest_plot)
   
-  print(paste("Saving plot to:", filename))  # Print the filename to confirm
-  png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
-  
-  forest_sw <- forest(forest_plot, 
-                      sortvar = country,
-                      xlim = c(0.2, 4),             
-                      leftcols = c("study", "cohort", "country"),
-                      leftlabs = c("Study", "Cohort", "Country"),
-                      digits = 2,
-                      digits.tau2 = 1,
-                      digits.I2 = 1,
-                      digits.pval.Q = 3,
-                      col.inside = "black",
-                      subgroup.name = "",
-                      subgroup = TRUE,
-                      print.byvar = FALSE,
-                      col.subgroup = "black") 
-  dev.off()
-}
-
-# recent adjusted estimates (injecting risk factors)
-recent_adj2_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
-  filtered_df <- df %>% 
-    filter(exposure_time_frame_bin == "recent") %>% 
-    filter(!is.na(moa_adj2)) %>%
-    filter(moa_adj2 != "NR")
-  
-  forest_plot <- metagen(TE = effect_adj2_ln,
-                         lower = effect_adj_lb2_ln,
-                         upper = effect_adj_ub2_ln,
-                         studlab = study,
-                         data = filtered_df,
-                         sm = "RR",
-                         method.tau = "DL",
-                         common = FALSE,
-                         random = TRUE, 
-                         backtransf = TRUE,
-                         subgroup = pub_status,
-                         text.random = "Overall")
-  summary(forest_plot)
-  
-  print(paste("Saving plot to:", filename))  # Print the filename to confirm
+  print(paste("Saving plot to:", filename))
   png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
   
   forest_sw <- forest(forest_plot, 
@@ -315,16 +286,16 @@ lifetime_unadj_forest_plot_combined <- function(df, exposure_time_frame, effect_
   dev.off()
 }
 
-# lifetime adjusted estimates (structural factors)
-lifetime_adj1_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
+# lifetime adjusted estimates
+lifetime_adj_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
   filtered_df <- df %>% 
     filter(exposure_time_frame_bin == "lifetime") %>% 
-    filter(!is.na(moa_adj1)) %>%
-    filter(moa_adj1 != "NR")
+    filter(!is.na(moa_adj)) %>%
+    filter(moa_adj != "NR")
   
-  forest_plot <- metagen(TE = effect_adj1_ln,
-                         lower = effect_adj_lb1_ln,
-                         upper = effect_adj_ub1_ln,
+  forest_plot <- metagen(TE = effect_adj_ln,
+                         lower = effect_adj_lb_ln,
+                         upper = effect_adj_ub_ln,
                          studlab = study,
                          data = filtered_df,
                          sm = "RR",
@@ -356,45 +327,25 @@ lifetime_adj1_forest_plot <- function(df, exposure_time_frame, effect_col, lower
   dev.off()
 }
 
-# lifetime adjusted estimates (injecting risk factors)
-lifetime_adj2_forest_plot <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, byvar_col, filename) {
-  filtered_df <- df %>% 
-    filter(exposure_time_frame_bin == "lifetime") %>% 
-    filter(!is.na(moa_adj2)) %>%
-    filter(moa_adj2 != "NR")
-  
-  forest_plot <- metagen(TE = effect_adj2_ln,
-                         lower = effect_adj_lb2_ln,
-                         upper = effect_adj_ub2_ln,
-                         studlab = study,
-                         data = filtered_df,
-                         sm = "RR",
-                         method.tau = "DL",
-                         common = FALSE,
-                         random = TRUE, 
-                         backtransf = TRUE,
-                         subgroup = pub_status,
-                         text.random = "Overall")
-  summary(forest_plot)
-  
-  print(paste("Saving plot to:", filename))
-  png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
-  
-  forest_sw <- forest(forest_plot, 
-                      sortvar = country,
-                      xlim = c(0.2, 4),             
-                      leftcols = c("country", "cohort"), 
-                      leftlabs = c("Country", "Cohort"),
-                      digits = 2,
-                      digits.tau2 = 1,
-                      digits.I2 = 1,
-                      digits.pval.Q = 3,
-                      col.inside = "black",
-                      subgroup.name = "",
-                      subgroup = TRUE,
-                      print.byvar = FALSE,
-                      col.subgroup = "black") 
-  dev.off()
+
+
+
+
+
+# append dataframes to make three forest plots in one figure for HIV and HCV
+combine_and_convert <- function(dfs, idx, labels, desired_cols) {
+  combined <- purrr::map2(dfs[idx], labels, ~ .x %>%
+    mutate(df = .y) %>%
+    select(all_of(desired_cols)) %>%
+    mutate(across(all_of(desired_cols), as.character))
+  ) %>%
+    bind_rows() %>%
+    mutate(
+      effect_unadj_ln = as.numeric(effect_unadj_ln),
+      effect_unadj_lb_ln = as.numeric(effect_unadj_lb_ln),
+      effect_unadj_ub_ln = as.numeric(effect_unadj_ub_ln)
+    )
+  return(combined)
 }
 
 # subgroup analysis of recent estimates
@@ -510,12 +461,12 @@ subgroup_analysis_recent_unadj <- function(df, exposure_time_frame, studlab_col,
 }
 
 # subgroup analyses for recent adjusted
-subgroup_analysis_recent_adj1 <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
+subgroup_analysis_recent_adj <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
   # recent exposure time frame
   filtered_df <- df %>%
     filter(exposure_time_frame_bin == "recent") %>%
-    filter(!is.na(effect_adj1_ln)) %>%
-    filter(effect_adj1_ln != "NR")
+    filter(!is.na(effect_adj_ln)) %>%
+    filter(effect_adj_ln != "NR")
   
   # loop through subgroup variables
   for (subgroup_var in subgroup_vars) {
@@ -525,9 +476,9 @@ subgroup_analysis_recent_adj1 <- function(df, exposure_time_frame, studlab_col, 
     
     # forest plot for the current subgroup
     forest_plot <- metagen(
-      TE = subgroup_filtered_df$effect_adj1_ln,
-      lower = subgroup_filtered_df$effect_adj_lb1_ln,
-      upper = subgroup_filtered_df$effect_adj_ub1_ln,
+      TE = subgroup_filtered_df$effect_adj_ln,
+      lower = subgroup_filtered_df$effect_adj_lb_ln,
+      upper = subgroup_filtered_df$effect_adj_ub_ln,
       studlab = subgroup_filtered_df[[studlab_col]],
       data = subgroup_filtered_df,
       sm = "RR",

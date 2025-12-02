@@ -52,11 +52,13 @@ sw_msm_table <- study_characteristics %>%
   )
 
 # estimates by article_type
-estimates_table <- estimates_by_article_type %>%
+estimates_table <- study_characteristics %>%
   rename(group = article_type) %>%
-  mutate(
+  group_by(group) %>%
+  summarise(
     total_estimates = sum(estimates, na.rm = TRUE),
-    total_studies = n_distinct(study)
+    total_studies = n_distinct(study),
+    .groups = "drop"
   )
 
 # total row
@@ -651,3 +653,13 @@ print(as.data.frame(sw_exposure_final))
 
 # Save sex work exposure results to Excel
 write_xlsx(sw_exposure_final, "Drafts/Study characteristics/sw_exposure_final_with_sex.xlsx")
+
+
+
+
+
+
+
+
+
+View(sw_exposure_final)
