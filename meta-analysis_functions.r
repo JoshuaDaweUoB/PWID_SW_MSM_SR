@@ -44,7 +44,7 @@ recode_to_na <- function(df) {
     )
 }
 
-# function to save dataframes as Excel sheets
+# function to save dataframes
 save_dataframes_to_excel <- function(dfs, sheet_names, file_path) {
   # create a named list of dataframes
   named_dfs <- setNames(dfs, sheet_names)
@@ -53,9 +53,9 @@ save_dataframes_to_excel <- function(dfs, sheet_names, file_path) {
   write_xlsx(named_dfs, path = file_path)
 }
 
-# Function to merge study_characteristics with dataframes in dfs list
+# function to merge hiv_inc and hcv_inc into dfs list
 merge_study_characteristics <- function(dfs_list, study_char_df) {
-  # Select only the binary variables and study column from study_characteristics
+  # select relevant studies
   char_to_merge <- study_char_df %>%
     select(study, hiv_inc_bin, hcv_inc_bin)
   
@@ -66,6 +66,20 @@ merge_study_characteristics <- function(dfs_list, study_char_df) {
   })
   
   return(merged_dfs)
+}
+
+# Function to calculate and add effect_unadj_se
+add_effect_unadj_se <- function(df) {
+  if (!all(c("effect_unadj_lb", "effect_unadj_ub") %in% names(df))) {
+    stop("The columns 'effect_unadj_lb' and 'effect_unadj_ub' are required to calculate 'effect_unadj_se'.")
+  }
+  
+  df <- df %>%
+    mutate(
+      effect_unadj_se = (log(effect_unadj_ub) - log(effect_unadj_lb)) / (2 * 1.96)
+    )
+  
+  return(df)
 }
 
 # meta analysis
@@ -90,7 +104,7 @@ recent_unadj_forest_plot <- function(df, exposure_time_frame, effect_col, lower_
                          text.random = "Overall")
   summary(forest_plot)
   
-  print(paste("Saving plot to:", filename))  # Print the filename to confirm
+  print(paste("Saving plot to:", filename))
   png(filename = filename, width = 30, height = 20, units = "cm", res = 500)
   
   forest_sw <- forest(forest_plot, 
@@ -327,11 +341,6 @@ lifetime_adj_forest_plot <- function(df, exposure_time_frame, effect_col, lower_
   dev.off()
 }
 
-
-
-
-
-
 # append dataframes to make three forest plots in one figure for HIV and HCV
 combine_and_convert <- function(dfs, idx, labels, desired_cols) {
   combined <- purrr::map2(dfs[idx], labels, ~ .x %>%
@@ -348,64 +357,9 @@ combine_and_convert <- function(dfs, idx, labels, desired_cols) {
   return(combined)
 }
 
-# subgroup analysis of recent estimates
+# subgroup analysis
 
-# Function to conduct subgroup analyses
-subgroup_analysis_recent <- function(df, exposure_time_frame, effect_col, lower_col, upper_col, studlab_col, subgroup_vars, base_filename) {
-  # Filter the dataframe for recent exposure time frame
-  filtered_df <- df %>%
-    filter(exposure_time_frame_bin == "recent") %>%
-    filter(!is.na(effect_unadj_ln)) %>%
-    filter(effect_unadj_ln != "NR")
-  
-  # Loop through each subgroup variable
-  for (subgroup_var in subgroup_vars) {
-    # Filter out rows with missing values in the subgroup variable
-    subgroup_filtered_df <- filtered_df %>%
-      filter(!is.na(.data[[subgroup_var]]))
-    
-    # Generate the forest plot for the current subgroup
-    forest_plot <- metagen(
-      TE = subgroup_filtered_df[[effect_col]],
-      lower = subgroup_filtered_df[[lower_col]],
-      upper = subgroup_filtered_df[[upper_col]],
-      studlab = subgroup_filtered_df[[studlab_col]],
-      data = subgroup_filtered_df,
-      sm = "RR",
-      method.tau = "DL",
-      common = FALSE,
-      random = TRUE,
-      backtransf = TRUE,
-      subgroup = subgroup_filtered_df[[subgroup_var]],
-      text.random = "Overall"
-    )
-    
-    # Construct the filename for the current subgroup plot
-    subgroup_filename <- gsub("\\.png$", paste0("_", subgroup_var, ".png"), base_filename)
-    
-    # Save the forest plot as a PNG
-    png(filename = subgroup_filename, width = 30, height = 20, units = "cm", res = 500)
-    forest(
-      forest_plot,
-      sortvar = subgroup_filtered_df[[studlab_col]],
-      xlim = c(0.2, 4),
-      leftcols = c("study", "country"),
-      leftlabs = c("Study", "Country"),
-      digits = 2,
-      digits.tau2 = 1,
-      digits.I2 = 1,
-      digits.pval.Q = 3,
-      col.inside = "black",
-      subgroup.name = "",
-      subgroup = TRUE,
-      print.byvar = FALSE,
-      col.subgroup = "black"
-    )
-    dev.off()
-  }
-}
-
-# conduct subgroup analyses for unadjusted estimates
+# subgroup analyses for recent unadjusted estimates
 subgroup_analysis_recent_unadj <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
   # recent exposure 
   filtered_df <- df %>%
@@ -460,25 +414,25 @@ subgroup_analysis_recent_unadj <- function(df, exposure_time_frame, studlab_col,
   }
 }
 
-# subgroup analyses for recent adjusted
-subgroup_analysis_recent_adj <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
-  # recent exposure time frame
+# subgroup analyses for lifetime unadjusted estimates
+subgroup_analysis_lifetime_unadj <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
+  # lifetime exposure 
   filtered_df <- df %>%
-    filter(exposure_time_frame_bin == "recent") %>%
-    filter(!is.na(effect_adj_ln)) %>%
-    filter(effect_adj_ln != "NR")
+    filter(exposure_time_frame_bin == "lifetime") %>%
+    filter(!is.na(effect_unadj_ln)) %>%
+    filter(effect_unadj_ln != "NR")
   
   # loop through subgroup variables
   for (subgroup_var in subgroup_vars) {
-    # remove rows with missing values in the subgroup variable
+    # exclude rows with missing values in subgroup variables
     subgroup_filtered_df <- filtered_df %>%
       filter(!is.na(.data[[subgroup_var]]))
     
-    # forest plot for the current subgroup
+    # forest plot for subgroups
     forest_plot <- metagen(
-      TE = subgroup_filtered_df$effect_adj_ln,
-      lower = subgroup_filtered_df$effect_adj_lb_ln,
-      upper = subgroup_filtered_df$effect_adj_ub_ln,
+      TE = subgroup_filtered_df$effect_unadj_ln,
+      lower = subgroup_filtered_df$effect_unadj_lb_ln,
+      upper = subgroup_filtered_df$effect_unadj_ub_ln,
       studlab = subgroup_filtered_df[[studlab_col]],
       data = subgroup_filtered_df,
       sm = "RR",
@@ -490,7 +444,7 @@ subgroup_analysis_recent_adj <- function(df, exposure_time_frame, studlab_col, s
       text.random = "Overall"
     )
     
-    # filename for the current subgroup plot
+    # filename for subgroup plot
     subgroup_filename <- gsub("\\.png$", paste0("_", subgroup_var, ".png"), base_filename)
     
     # save
@@ -518,7 +472,6 @@ subgroup_analysis_recent_adj <- function(df, exposure_time_frame, studlab_col, s
 # meta regression
 meta_regress_strata_summary <- function(df) {
   filtered_df <- df %>%
-    filter(use == "yes") %>%
     filter(exposure_time_frame_bin == "recent") %>%
     filter(!is.na(effect_unadj_ln))
 
@@ -674,7 +627,7 @@ meta_regress_strata_summary <- function(df) {
   dplyr::bind_rows(results)
 }
 
-## publication bias
+# publication bias
 test_publication_bias <- function(df, yi_col, sei_col, plot_filename = NULL) {
   # remove rows with missing values
   df <- df %>% filter(!is.na(.data[[yi_col]]), !is.na(.data[[sei_col]]))

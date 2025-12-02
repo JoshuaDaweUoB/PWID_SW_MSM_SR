@@ -66,20 +66,6 @@ study_characteristics <- study_characteristics %>%
 # merge
 dfs <- merge_study_characteristics(dfs, study_characteristics)
 
-hiv_sw_all     <- dfs[[1]]
-hiv_sw_males   <- dfs[[2]]
-hiv_sw_females <- dfs[[3]]
-hiv_msm        <- dfs[[4]]
-hcv_sw_all     <- dfs[[5]]
-hcv_sw_males   <- dfs[[6]]
-hcv_sw_females <- dfs[[7]]
-hcv_msm        <- dfs[[8]]
-
-# merge study characteristics
-dfs <- merge_study_characteristics(dfs, study_characteristics)
-
-# Assign the updated dataframes back to their original variables
-hiv_sw_all     <- dfs[[1]]
 hiv_sw_males   <- dfs[[2]]
 hiv_sw_females <- dfs[[3]]
 hiv_msm        <- dfs[[4]]
@@ -149,25 +135,49 @@ for (virus in names(virus_idx)) {
   assign(paste0(virus, "_sw_combined"), combined, envir = .GlobalEnv)
 }
 
-# recent unadjusted sex work and HCV/HIV, overall and by sex
+# unadjusted sex work and HCV/HIV, overall and by sex
 for (virus in c("hiv", "hcv")) {
-  filename_combined <- paste0(
+
+  # removes rows with missing MoA
+  filtered_data <- get(paste0(virus, "_sw_combined")) %>%
+    filter(!is.na(effect_unadj_ln), !is.na(effect_unadj_lb_ln), !is.na(effect_unadj_ub_ln))
+  
+  # recent plot
+  filename_combined_recent <- paste0(
     "C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/sw_recent_",
     virus,
     "_combined_unadj.png"
   )
   recent_unadj_forest_plot_combined(
-    get(paste0(virus, "_sw_combined")),
+    filtered_data,
     "recent",
     "effect_unadj_ln",
     "effect_unadj_lb_ln",
     "effect_unadj_ub_ln",
     "lead_author",
     "df",
-    filename_combined
+    filename_combined_recent
+  )
+  
+  # lifetime plot
+  filename_combined_lifetime <- paste0(
+    "C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/sw_lifetime_",
+    virus,
+    "_combined_unadj.png"
+  )
+  lifetime_unadj_forest_plot_combined(
+    filtered_data,
+    "lifetime",
+    "effect_unadj_ln",
+    "effect_unadj_lb_ln",
+    "effect_unadj_ub_ln",
+    "lead_author",
+    "df",
+    filename_combined_lifetime
   )
 }
 
+# combine MSM data for recent and lifetime
 hiv_msm_combine <- dfs[[4]] %>%
   mutate(df = "HIV") %>%
   select(all_of(desired_cols)) %>%
@@ -178,9 +188,11 @@ hcv_msm_combine <- dfs[[8]] %>%
   select(all_of(desired_cols)) %>%
   mutate(across(all_of(desired_cols), as.character))
 
-msm_combined <- bind_rows(hiv_msm_combine, hcv_msm_combine)
+msm_combined <- bind_rows(hiv_msm_combine, hcv_msm_combine) %>%
+  filter(!is.na(effect_unadj_ln), !is.na(effect_unadj_lb_ln), !is.na(effect_unadj_ub_ln))
 
-filename_msm_combined <- "C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/sw_recent_msm_combined_unadj.png"
+# recent MSM plot
+filename_msm_combined_recent <- "C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/sw_recent_msm_combined_unadj.png"
 
 msm_combined <- msm_combined %>%
   mutate(
@@ -197,7 +209,21 @@ recent_unadj_forest_plot_combined(
   "effect_unadj_ub_ln",
   "lead_author",
   "df",
-  filename_msm_combined
+  filename_msm_combined_recent
+)
+
+# lifetime MSM plot
+filename_msm_combined_lifetime <- "C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/sw_lifetime_msm_combined_unadj.png"
+
+lifetime_unadj_forest_plot_combined(
+  msm_combined,
+  "lifetime",
+  "effect_unadj_ln",
+  "effect_unadj_lb_ln",
+  "effect_unadj_ub_ln",
+  "lead_author",
+  "df",
+  filename_msm_combined_lifetime
 )
 
 # subgroup forest plots
@@ -205,7 +231,7 @@ recent_unadj_forest_plot_combined(
 # recent unadjusted effect forest plots by subgroup
 for (i in 1:length(dfs)) {
   filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/subgroups/unadjusted/", rec_unadj[i])
-  print(filename)  # Print the filename to confirm
+  print(filename)
   subgroup_analysis_recent_unadj(
     dfs[[i]],
     "recent",
@@ -215,20 +241,30 @@ for (i in 1:length(dfs)) {
   )
 }
 
-# recent adjusted (structural factors) effect forest plots by subgroup
+# lifetime unadjusted effect forest plots by subgroup
 for (i in 1:length(dfs)) {
-  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/subgroups/adjusted/", rec_adj1[i])
-  print(filename)  # Print the filename to confirm
-  subgroup_analysis_recent_adj1(
+  filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/subgroups/unadjusted/", gsub("recent", "lifetime", rec_unadj[i]))
+  print(filename)
+  subgroup_analysis_lifetime_unadj(
     dfs[[i]],
-    "recent",
+    "lifetime",
     "lead_author",
     subgroup_names,
     filename
   )
 }
 
-## meta regression
+# meta regression
+
+# Add effect_unadj_se to each data frame
+hiv_sw_all <- add_effect_unadj_se(hiv_sw_all)
+hiv_sw_males <- add_effect_unadj_se(hiv_sw_males)
+hiv_sw_females <- add_effect_unadj_se(hiv_sw_females)
+hiv_msm <- add_effect_unadj_se(hiv_msm)
+hcv_sw_all <- add_effect_unadj_se(hcv_sw_all)
+hcv_sw_males <- add_effect_unadj_se(hcv_sw_males)
+hcv_sw_females <- add_effect_unadj_se(hcv_sw_females)
+hcv_msm <- add_effect_unadj_se(hcv_msm)
 
 # apply meta-regression to each df
 meta_regress_hiv_sw_all_strata     <- meta_regress_strata_summary(hiv_sw_all)
@@ -255,15 +291,7 @@ writexl::write_xlsx(
   path = "code/meta_regression_strata_summary.xlsx"
 )
 
-## publication bias
-
-# effect_unadj_se to each dataframe
-for (df_name in c("hiv_sw_all", "hiv_sw_males", "hiv_sw_females", "hiv_msm",
-                  "hcv_sw_all", "hcv_sw_males", "hcv_sw_females", "hcv_msm")) {
-  df <- get(df_name)
-  df$effect_unadj_se <- (df$effect_unadj_ub_ln - df$effect_unadj_lb_ln) / (2 * 1.96)
-  assign(df_name, df, envir = .GlobalEnv)
-}
+# publication bias
 
 # publication bias tests for each dataframe (recent)
 test_publication_bias(
