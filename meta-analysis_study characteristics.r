@@ -98,16 +98,7 @@ hcv_msm_subset <- hcv_msm %>%
     disease = "hcv"
   )
 
-cat("hiv_msm rows:", nrow(hiv_msm), "\n")
-cat("hcv_msm rows:", nrow(hcv_msm), "\n")
-
-cat("hiv_msm exposed sum:", sum(as.numeric(hiv_msm$exposed_num), na.rm = TRUE), "\n")
-cat("hcv_msm exposed sum:", sum(as.numeric(hcv_msm$exposed_num), na.rm = TRUE), "\n")
-
-cat("hiv_msm unexposed sum:", sum(as.numeric(hiv_msm$unexposed_num), na.rm = TRUE), "\n")
-cat("hcv_msm unexposed sum:", sum(as.numeric(hcv_msm$unexposed_num), na.rm = TRUE), "\n")
-
-# Combine only the specified columns from hiv_msm and hcv_msm
+# combine columns from hiv_msm and hcv_msm
 msm_all <- bind_rows(
   hiv_msm_subset %>% select(any_of(cols_to_keep)),
   hcv_msm_subset %>% select(any_of(cols_to_keep))
@@ -171,10 +162,10 @@ msm_exposure_summary <- msm_all %>%
 
 print(as.data.frame(msm_exposure_summary))
 
-# Random effects meta-analysis for MSM exposure proportions
+# meta-analysis for MSM exposure proportions
 msm_meta_results <- list()
 
-# Function to perform meta-analysis for each disease/exposure combination
+# meta-analysis for each disease/exposure combination
 perform_meta_analysis <- function(data, disease_filter, exposure_filter) {
   subset_data <- data %>%
     filter(disease == disease_filter, exposure_time_frame_bin == exposure_filter) %>%
@@ -202,7 +193,7 @@ perform_meta_analysis <- function(data, disease_filter, exposure_filter) {
   }
 }
 
-# Function to perform meta-analysis for overall (combining both diseases)
+# perform meta-analysis for overall
 perform_overall_meta_analysis <- function(data, exposure_filter) {
   subset_data <- data %>%
     filter(exposure_time_frame_bin == exposure_filter) %>%
@@ -230,12 +221,12 @@ perform_overall_meta_analysis <- function(data, exposure_filter) {
   }
 }
 
-# Get unique combinations of disease and exposure_time_frame_bin (excluding Overall)
+# combinations of disease and exposure_time_frame_bin
 combinations <- msm_all %>%
   filter(!is.na(exposure_time_frame_bin)) %>%
   distinct(disease, exposure_time_frame_bin)
 
-# Perform meta-analysis for each disease/exposure combination
+# meta-analysis for each disease/exposure combination
 for (i in 1:nrow(combinations)) {
   disease_val <- combinations$disease[i]
   exposure_val <- combinations$exposure_time_frame_bin[i]
@@ -247,7 +238,7 @@ for (i in 1:nrow(combinations)) {
   }
 }
 
-# Perform meta-analysis for overall combinations
+# meta-analysis for overall combinations
 unique_exposures <- msm_all %>%
   filter(!is.na(exposure_time_frame_bin)) %>%
   distinct(exposure_time_frame_bin)
@@ -262,7 +253,7 @@ for (i in 1:nrow(unique_exposures)) {
   }
 }
 
-# Extract pooled proportions and add to summary
+# pooled proportions
 msm_pooled_proportions <- tibble()
 
 for (name in names(msm_meta_results)) {
@@ -270,7 +261,7 @@ for (name in names(msm_meta_results)) {
   parts <- strsplit(name, "_")[[1]]
   disease_name <- parts[1]
   exposure_name <- paste(parts[-1], collapse = "_")
-  
+
   pooled_prop <- tibble(
     disease = disease_name,
     exposure_time_frame_bin = exposure_name,
@@ -279,13 +270,13 @@ for (name in names(msm_meta_results)) {
     pooled_upper = exp(meta_obj$upper.random) / (1 + exp(meta_obj$upper.random)),
     i2 = meta_obj$I2,
     tau2 = meta_obj$tau2,
-    p_value = meta_obj$pval.random
+    p_value = meta_obj$pval.random,
+    n_studies = meta_obj$k    # NEW: count of studies contributing
   )
-  
+
   msm_pooled_proportions <- bind_rows(msm_pooled_proportions, pooled_prop)
 }
 
-# Combine crude and pooled results
 msm_exposure_final <- msm_exposure_summary %>%
   left_join(msm_pooled_proportions, by = c("disease", "exposure_time_frame_bin"))
 
@@ -323,7 +314,7 @@ unique_studies_sw <- sw_all %>%
   summarise(unique_studies = n_distinct(study)) %>%
   pull(unique_studies)
 
-print(unique_studies_msm)
+print(unique_studies_sw)
 
 # studies reporting recent and lifetime exposure_time_frame_bin, overall and by disease
 sw_study_counts <- sw_all %>%
@@ -636,7 +627,7 @@ for (name in names(sw_meta_results)) {
   disease_name <- parts[1]
   sex_name <- parts[2]
   exposure_name <- paste(parts[3:length(parts)], collapse = "_")
-  
+
   pooled_prop <- tibble(
     disease = disease_name,
     sex = sex_name,
@@ -646,13 +637,13 @@ for (name in names(sw_meta_results)) {
     pooled_upper = exp(meta_obj$upper.random) / (1 + exp(meta_obj$upper.random)),
     i2 = meta_obj$I2,
     tau2 = meta_obj$tau2,
-    p_value = meta_obj$pval.random
+    p_value = meta_obj$pval.random,
+    n_studies = meta_obj$k    # NEW: count of studies contributing
   )
-  
+
   sw_pooled_proportions <- bind_rows(sw_pooled_proportions, pooled_prop)
 }
 
-# combine crude and pooled %s
 sw_exposure_final <- sw_exposure_summary %>%
   left_join(sw_pooled_proportions, by = c("disease", "sex", "exposure_time_frame_bin"))
 
