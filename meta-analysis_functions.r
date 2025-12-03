@@ -25,23 +25,35 @@ log_transform <- function(df) {
   return(df)
 }
 
-# recode oat, homelessness and prison to NA if lifetime is reported
+# Recode lifetime OAT, homelessness, prison % to NA (handles mixed types, missing cols)
 recode_to_na <- function(df) {
-  df %>%
-    mutate(
-      oat_perc = case_when(
-        oat_time_frame_bin == "Lifetime" ~ NA_real_,
-        TRUE ~ oat_perc
-      ),
-      homeless_perc = case_when(
-        homeless_time_frame_bin == "Lifetime" ~ NA_real_,
-        TRUE ~ homeless_perc
-      ),
-      prison_perc = case_when(
-        prison_time_frame_bin == "Lifetime" ~ NA_real_,
-        TRUE ~ prison_perc
-      )
-    )
+  # Coerce percentage fields to numeric if present (quietly)
+  for (nm in c("oat_perc", "homeless_perc", "prison_perc")) {
+    if (nm %in% names(df)) df[[nm]] <- suppressWarnings(as.numeric(df[[nm]]))
+  }
+
+  # Normalise time frame labels
+  norm <- function(x) tolower(trimws(as.character(x)))
+
+  # OAT
+  if (all(c("oat_perc", "oat_time_frame_bin") %in% names(df))) {
+    is_lt <- norm(df[["oat_time_frame_bin"]]) == "lifetime"
+    df[["oat_perc"]][is_lt] <- NA_real_
+  }
+
+  # Homelessness
+  if (all(c("homeless_perc", "homeless_time_frame_bin") %in% names(df))) {
+    is_lt <- norm(df[["homeless_time_frame_bin"]]) == "lifetime"
+    df[["homeless_perc"]][is_lt] <- NA_real_
+  }
+
+  # Prison
+  if (all(c("prison_perc", "prison_time_frame_bin") %in% names(df))) {
+    is_lt <- norm(df[["prison_time_frame_bin"]]) == "lifetime"
+    df[["prison_perc"]][is_lt] <- NA_real_
+  }
+
+  df
 }
 
 # function to save dataframes

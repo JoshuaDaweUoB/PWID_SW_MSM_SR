@@ -24,7 +24,7 @@ dfs <- list(hiv_sw_all, hiv_sw_males, hiv_sw_females, hiv_msm, hcv_sw_all, hcv_s
 rec_unadj <- c("sw_recent_hiv_all_unadj.png", "sw_recent_hiv_males_unadj.png", "sw_recent_hiv_females_unadj.png", "sw_recent_hiv_msm_unadj.png", "sw_recent_hcv_all_unadj.png", "sw_recent_hcv_males_unadj.png", "sw_recent_hcv_females_unadj.png", "sw_recent_hcv_msm_unadj.png")
 rec_adj <- c("sw_recent_hiv_all_adj.png", "sw_recent_hiv_males_adj.png", "sw_recent_hiv_females_adj.png", "sw_recent_hiv_msm_adj.png", "sw_recent_hcv_all_adj.png", "sw_recent_hcv_males_adj.png", "sw_recent_hcv_females_adj.png", "sw_recent_hcv_msm_adj.png")
 sheet_names <- c("HIV_Sex_Work_All", "HIV_Sex_Work_Males", "HIV_Sex_Work_Females", "HIV_MSM", "HCV_Sex_Work_All", "HCV_Sex_Work_Males", "HCV_Sex_Work_Females", "HCV_MSM")
-subgroup_names <- c("pub_status", "2016_bin", "incidence_method", "who_region", "lmic_bin", "hiv_crim", "rob_3cat", "hiv_inc_bin", "hcv_inc_bin")
+subgroup_names <- c("pub_status", "2010_bin", "incidence_method", "lmic_bin", "hiv_inc_bin", "hcv_inc_bin")
 rec_unadj_subgroup <- c("recent_hiv_all_subgroup.png", "recent_hiv_males_subgroup.png", "recent_hiv_females_subgroup.png", "recent_hiv_msm_subgroup.png", "recent_hcv_all_subgroup.png", "recent_hcv_males_subgroup.png", "recent_hcv_females_subgroup.png", "recent_hcv_msm_subgroup.png")
 
 # data cleaning
@@ -82,6 +82,9 @@ for (i in 1:length(dfs)) {
   dfs[[i]] <- df
 }
 
+# Recode lifetime OAT, homelessness, prison to NA before any plots/analyses
+dfs <- lapply(dfs, recode_to_na)
+
 # filtered data frames back to original variables
 hiv_sw_all     <- dfs[[1]]
 hiv_sw_males   <- dfs[[2]]
@@ -117,7 +120,7 @@ for (i in 1:length(dfs)) {
 for (i in 1:length(dfs)) {
   filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/adjusted/lifetime/", gsub("recent", "lifetime", rec_adj[i]))
   print(filename)
-  lifetime_adj_forest_plot(dfs[[i]], "lifetime", "effect_adj_ln", "effect_adj_lb1_ln", "effect_adj_ub_ln", "lead_author", "pub_status", filename)
+  lifetime_adj_forest_plot(dfs[[i]], "lifetime", "effect_adj_ln", "effect_adj_lb_ln", "effect_adj_ub_ln", "lead_author", "pub_status", filename)
 }
 
 # run meta analyses and save results to workbook
@@ -176,19 +179,19 @@ lifetime_adjusted_rows   <- vector("list", length(dfs))
 
 for (i in seq_along(dfs)) {
   recent_unadjusted_rows[[i]] <- cbind(
-    model = model_labels[i],
+    model = sheet_names[i],
     summarise_pool(dfs[[i]], time_bin = "recent",   is_adjusted = FALSE)
   )
   recent_adjusted_rows[[i]] <- cbind(
-    model = model_labels[i],
+    model = sheet_names[i],
     summarise_pool(dfs[[i]], time_bin = "recent",   is_adjusted = TRUE)
   )
   lifetime_unadjusted_rows[[i]] <- cbind(
-    model = model_labels[i],
+    model = sheet_names[i],
     summarise_pool(dfs[[i]], time_bin = "lifetime", is_adjusted = FALSE)
   )
   lifetime_adjusted_rows[[i]] <- cbind(
-    model = model_labels[i],
+    model = sheet_names[i],
     summarise_pool(dfs[[i]], time_bin = "lifetime", is_adjusted = TRUE)
   )
 }
