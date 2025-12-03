@@ -127,6 +127,22 @@ study_counts <- msm_all %>%
 
 print(study_counts)
 
+# deduplicate studies which have both hiv and hcv estimates
+msm_overall_dedup <- msm_all %>%
+  filter(!is.na(exposure_time_frame_bin)) %>%
+  mutate(
+    exposed_num = as.numeric(exposed_num),
+    unexposed_num = as.numeric(unexposed_num)
+  ) %>%
+  group_by(study, exposure_time_frame_bin) %>%
+  summarise(
+    exposed_num = sum(exposed_num, na.rm = TRUE),
+    unexposed_num = sum(unexposed_num, na.rm = TRUE),
+    total_n = exposed_num + unexposed_num,
+    .groups = "drop"
+  ) %>%
+  filter(total_n > 0)
+
 # number and proportion of individuals reporting recent and lifetime MSM exposure, overall and by disease
 msm_exposure_summary <- msm_all %>%
   filter(!is.na(exposure_time_frame_bin)) %>%
@@ -143,18 +159,13 @@ msm_exposure_summary <- msm_all %>%
     .groups = "drop"
   ) %>%
   bind_rows(
-    msm_all %>%
-      filter(!is.na(exposure_time_frame_bin)) %>%
-      mutate(
-        exposed_num = as.numeric(exposed_num),
-        unexposed_num = as.numeric(unexposed_num)
-      ) %>%
+    msm_overall_dedup %>%
       group_by(exposure_time_frame_bin) %>%
       summarise(
         total_exposed = sum(exposed_num, na.rm = TRUE),
-        total_unexposed = sum(unexposed_num, na.rm = TRUE),
-        total = total_exposed + total_unexposed,
-        proportion_exposed = total_exposed / total
+        total = sum(total_n, na.rm = TRUE),
+        proportion_exposed = total_exposed / total,
+        .groups = "drop"
       ) %>%
       mutate(disease = "Overall")
   ) %>%
@@ -246,7 +257,7 @@ unique_exposures <- msm_all %>%
 for (i in 1:nrow(unique_exposures)) {
   exposure_val <- unique_exposures$exposure_time_frame_bin[i]
   
-  meta_result <- perform_overall_meta_analysis(msm_all, exposure_val)
+  meta_result <- perform_overall_meta_analysis(msm_overall_dedup, exposure_val)
   
   if (!is.null(meta_result)) {
     msm_meta_results[[paste("Overall", exposure_val, sep = "_")]] <- meta_result
@@ -355,6 +366,52 @@ sw_females <- bind_rows(
     mutate(across(c(exposed_num, unexposed_num), as.numeric))
 )
 
+# deduplicate studies which report hiv and hcv estimates
+sw_all_overall_dedup <- sw_all %>%
+  filter(!is.na(exposure_time_frame_bin)) %>%
+  mutate(
+    exposed_num = as.numeric(exposed_num),
+    unexposed_num = as.numeric(unexposed_num)
+  ) %>%
+  group_by(study, exposure_time_frame_bin) %>%
+  summarise(
+    exposed_num = sum(exposed_num, na.rm = TRUE),
+    unexposed_num = sum(unexposed_num, na.rm = TRUE),
+    total_n = exposed_num + unexposed_num,
+    .groups = "drop"
+  ) %>%
+  filter(total_n > 0)
+
+sw_males_overall_dedup <- sw_males %>%
+  filter(!is.na(exposure_time_frame_bin)) %>%
+  mutate(
+    exposed_num = as.numeric(exposed_num),
+    unexposed_num = as.numeric(unexposed_num)
+  ) %>%
+  group_by(study, exposure_time_frame_bin) %>%
+  summarise(
+    exposed_num = sum(exposed_num, na.rm = TRUE),
+    unexposed_num = sum(unexposed_num, na.rm = TRUE),
+    total_n = exposed_num + unexposed_num,
+    .groups = "drop"
+  ) %>%
+  filter(total_n > 0)
+
+sw_females_overall_dedup <- sw_females %>%
+  filter(!is.na(exposure_time_frame_bin)) %>%
+  mutate(
+    exposed_num = as.numeric(exposed_num),
+    unexposed_num = as.numeric(unexposed_num)
+  ) %>%
+  group_by(study, exposure_time_frame_bin) %>%
+  summarise(
+    exposed_num = sum(exposed_num, na.rm = TRUE),
+    unexposed_num = sum(unexposed_num, na.rm = TRUE),
+    total_n = exposed_num + unexposed_num,
+    .groups = "drop"
+  ) %>%
+  filter(total_n > 0)
+
 # number and proportion of individuals reporting recent and lifetime sex work exposure
 sw_exposure_summary <- sw_all %>%
   filter(!is.na(exposure_time_frame_bin)) %>%
@@ -409,53 +466,35 @@ sw_exposure_summary <- sw_all %>%
   ) %>%
   bind_rows(
     # males and females for hiv and hcv
-    sw_all %>%
-      filter(!is.na(exposure_time_frame_bin)) %>%
-      mutate(
-        exposed_num = as.numeric(exposed_num),
-        unexposed_num = as.numeric(unexposed_num)
-      ) %>%
+    sw_all_overall_dedup %>%
       group_by(exposure_time_frame_bin) %>%
       summarise(
         total_exposed = sum(exposed_num, na.rm = TRUE),
-        total_unexposed = sum(unexposed_num, na.rm = TRUE),
-        total = total_exposed + total_unexposed,
+        total = sum(total_n, na.rm = TRUE),
         proportion_exposed = total_exposed / total,
         .groups = "drop"
       ) %>%
       mutate(disease = "Overall", sex = "All")
-  ) %>%
-  bind_rows(
+    ) %>%
+    bind_rows(
     # males for hiv and hcv
-    sw_males %>%
-      filter(!is.na(exposure_time_frame_bin)) %>%
-      mutate(
-        exposed_num = as.numeric(exposed_num),
-        unexposed_num = as.numeric(unexposed_num)
-      ) %>%
+    sw_males_overall_dedup %>%
       group_by(exposure_time_frame_bin) %>%
       summarise(
         total_exposed = sum(exposed_num, na.rm = TRUE),
-        total_unexposed = sum(unexposed_num, na.rm = TRUE),
-        total = total_exposed + total_unexposed,
+        total = sum(total_n, na.rm = TRUE),
         proportion_exposed = total_exposed / total,
         .groups = "drop"
       ) %>%
       mutate(disease = "Overall", sex = "Males")
-  ) %>%
-  bind_rows(
+    ) %>%
+    bind_rows(
     # females for hiv and hcv
-    sw_females %>%
-      filter(!is.na(exposure_time_frame_bin)) %>%
-      mutate(
-        exposed_num = as.numeric(exposed_num),
-        unexposed_num = as.numeric(unexposed_num)
-      ) %>%
+    sw_females_overall_dedup %>%
       group_by(exposure_time_frame_bin) %>%
       summarise(
         total_exposed = sum(exposed_num, na.rm = TRUE),
-        total_unexposed = sum(unexposed_num, na.rm = TRUE),
-        total = total_exposed + total_unexposed,
+        total = sum(total_n, na.rm = TRUE),
         proportion_exposed = total_exposed / total,
         .groups = "drop"
       ) %>%
@@ -589,8 +628,8 @@ sw_unique_exposures <- sw_all %>%
 for (i in 1:nrow(sw_unique_exposures)) {
   exposure_val <- sw_unique_exposures$exposure_time_frame_bin[i]
   
-  meta_result <- perform_sw_overall_meta_analysis_with_sex(sw_all, exposure_val)
-  
+meta_result <- perform_sw_overall_meta_analysis_with_sex(sw_all_overall_dedup, exposure_val)
+
   if (!is.null(meta_result)) {
     sw_meta_results[[paste("Overall", "All", exposure_val, sep = "_")]] <- meta_result
   }
@@ -600,7 +639,7 @@ for (i in 1:nrow(sw_unique_exposures)) {
 for (i in 1:nrow(sw_unique_exposures)) {
   exposure_val <- sw_unique_exposures$exposure_time_frame_bin[i]
   
-  meta_result <- perform_sw_overall_meta_analysis_with_sex(sw_males, exposure_val)
+  meta_result <- perform_sw_overall_meta_analysis_with_sex(sw_males_overall_dedup, exposure_val)
   
   if (!is.null(meta_result)) {
     sw_meta_results[[paste("Overall", "Males", exposure_val, sep = "_")]] <- meta_result
@@ -611,7 +650,7 @@ for (i in 1:nrow(sw_unique_exposures)) {
 for (i in 1:nrow(sw_unique_exposures)) {
   exposure_val <- sw_unique_exposures$exposure_time_frame_bin[i]
   
-  meta_result <- perform_sw_overall_meta_analysis_with_sex(sw_females, exposure_val)
+  meta_result <- perform_sw_overall_meta_analysis_with_sex(sw_females_overall_dedup, exposure_val)
   
   if (!is.null(meta_result)) {
     sw_meta_results[[paste("Overall", "Females", exposure_val, sep = "_")]] <- meta_result
@@ -638,7 +677,7 @@ for (name in names(sw_meta_results)) {
     i2 = meta_obj$I2,
     tau2 = meta_obj$tau2,
     p_value = meta_obj$pval.random,
-    n_studies = meta_obj$k    # NEW: count of studies contributing
+    n_studies = meta_obj$k
   )
 
   sw_pooled_proportions <- bind_rows(sw_pooled_proportions, pooled_prop)
