@@ -120,6 +120,96 @@ for (i in 1:length(dfs)) {
   lifetime_adj_forest_plot(dfs[[i]], "lifetime", "effect_adj_ln", "effect_adj_lb1_ln", "effect_adj_ub_ln", "lead_author", "pub_status", filename)
 }
 
+# run meta analyses and save results to workbook
+summarise_pool <- function(df, time_bin, is_adjusted) {
+  filtered_df <- df %>%
+    filter(exposure_time_frame_bin == time_bin)
+
+  if (is_adjusted) {
+    filtered_df <- filtered_df %>% filter(!is.na(moa_adj))
+    m <- metagen(
+      TE = effect_adj_ln,
+      lower = effect_adj_lb_ln,
+      upper = effect_adj_ub_ln,
+      studlab = study,
+      data = filtered_df,
+      sm = "RR",
+      method.tau = "DL",
+      common = FALSE,
+      random = TRUE,
+      backtransf = TRUE,
+      subgroup = pub_status,
+      text.random = "Overall"
+    )
+  } else {
+    filtered_df <- filtered_df %>% filter(!is.na(moa_unadj))
+    m <- metagen(
+      TE = effect_unadj_ln,
+      lower = effect_unadj_lb_ln,
+      upper = effect_unadj_ub_ln,
+      studlab = study,
+      data = filtered_df,
+      sm = "RR",
+      method.tau = "DL",
+      common = FALSE,
+      random = TRUE,
+      backtransf = TRUE,
+      subgroup = pub_status,
+      text.random = "Overall"
+    )
+  }
+
+  data.frame(
+    n_estimates = m$k,
+    effect = exp(as.numeric(m$TE.random)),
+    lower  = exp(as.numeric(m$lower.random)),
+    upper  = exp(as.numeric(m$upper.random)),
+    I2 = as.numeric(m$I2),
+    p_value = as.numeric(m$pval.random)
+  )
+}
+
+recent_unadjusted_rows <- vector("list", length(dfs))
+recent_adjusted_rows   <- vector("list", length(dfs))
+lifetime_unadjusted_rows <- vector("list", length(dfs))
+lifetime_adjusted_rows   <- vector("list", length(dfs))
+
+for (i in seq_along(dfs)) {
+  recent_unadjusted_rows[[i]] <- cbind(
+    model = model_labels[i],
+    summarise_pool(dfs[[i]], time_bin = "recent",   is_adjusted = FALSE)
+  )
+  recent_adjusted_rows[[i]] <- cbind(
+    model = model_labels[i],
+    summarise_pool(dfs[[i]], time_bin = "recent",   is_adjusted = TRUE)
+  )
+  lifetime_unadjusted_rows[[i]] <- cbind(
+    model = model_labels[i],
+    summarise_pool(dfs[[i]], time_bin = "lifetime", is_adjusted = FALSE)
+  )
+  lifetime_adjusted_rows[[i]] <- cbind(
+    model = model_labels[i],
+    summarise_pool(dfs[[i]], time_bin = "lifetime", is_adjusted = TRUE)
+  )
+}
+
+recent_unadjusted     <- dplyr::bind_rows(recent_unadjusted_rows)
+recent_adjusted       <- dplyr::bind_rows(recent_adjusted_rows)
+lifetime_unadjusted   <- dplyr::bind_rows(lifetime_unadjusted_rows)
+lifetime_adjusted     <- dplyr::bind_rows(lifetime_adjusted_rows)
+
+writexl::write_xlsx(
+  list(
+    recent_unadjusted = recent_unadjusted,
+    recent_adjusted = recent_adjusted,
+    lifetime_unadjusted = lifetime_unadjusted,
+    lifetime_adjusted = lifetime_adjusted
+  ),
+  path = "code/forest_plot_results.xlsx"
+)
+
+# combined plotting
+
 desired_cols <- c(
   "study", "rob_3cat", "cohort", "pub_status", "use", "year_start", "year_end", "mid_year", "2016_bin", "exposure_time_frame_bin", "country", "df",
   "moa_unadj", "effect_unadj", "effect_unadj_lb", "effect_unadj_ub", "effect_unadj_p",

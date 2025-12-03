@@ -98,6 +98,15 @@ hcv_msm_subset <- hcv_msm %>%
     disease = "hcv"
   )
 
+cat("hiv_msm rows:", nrow(hiv_msm), "\n")
+cat("hcv_msm rows:", nrow(hcv_msm), "\n")
+
+cat("hiv_msm exposed sum:", sum(as.numeric(hiv_msm$exposed_num), na.rm = TRUE), "\n")
+cat("hcv_msm exposed sum:", sum(as.numeric(hcv_msm$exposed_num), na.rm = TRUE), "\n")
+
+cat("hiv_msm unexposed sum:", sum(as.numeric(hiv_msm$unexposed_num), na.rm = TRUE), "\n")
+cat("hcv_msm unexposed sum:", sum(as.numeric(hcv_msm$unexposed_num), na.rm = TRUE), "\n")
+
 # Combine only the specified columns from hiv_msm and hcv_msm
 msm_all <- bind_rows(
   hiv_msm_subset %>% select(any_of(cols_to_keep)),
@@ -303,7 +312,7 @@ hcv_sw_all_subset <- hcv_sw_all %>%
     disease = "hcv"
   )
 
-# Combine only the specified columns 
+# combine
 sw_all <- bind_rows(
   hiv_sw_all_subset %>% select(any_of(cols_to_keep)),
   hcv_sw_all_subset %>% select(any_of(cols_to_keep))
@@ -332,7 +341,7 @@ sw_study_counts <- sw_all %>%
 
 print(sw_study_counts)
 
-# Create combined dataset for males and females - fix data type issues first
+# combined dataset for males and females
 sw_males <- bind_rows(
   hiv_sw_males %>% 
     mutate(disease = "hiv") %>%
@@ -355,7 +364,7 @@ sw_females <- bind_rows(
     mutate(across(c(exposed_num, unexposed_num), as.numeric))
 )
 
-# 2. Overall number and proportion of individuals reporting recent and lifetime sex work exposure, overall and by disease
+# number and proportion of individuals reporting recent and lifetime sex work exposure
 sw_exposure_summary <- sw_all %>%
   filter(!is.na(exposure_time_frame_bin)) %>%
   mutate(
@@ -372,7 +381,7 @@ sw_exposure_summary <- sw_all %>%
   ) %>%
   mutate(sex = "All") %>%
   bind_rows(
-    # Males by disease
+    # males
     sw_males %>%
       filter(!is.na(exposure_time_frame_bin)) %>%
       mutate(
@@ -390,7 +399,7 @@ sw_exposure_summary <- sw_all %>%
       mutate(sex = "Males")
   ) %>%
   bind_rows(
-    # Females by disease
+    # females
     sw_females %>%
       filter(!is.na(exposure_time_frame_bin)) %>%
       mutate(
@@ -408,7 +417,7 @@ sw_exposure_summary <- sw_all %>%
       mutate(sex = "Females")
   ) %>%
   bind_rows(
-    # Overall (all diseases combined)
+    # males and females for hiv and hcv
     sw_all %>%
       filter(!is.na(exposure_time_frame_bin)) %>%
       mutate(
@@ -426,7 +435,7 @@ sw_exposure_summary <- sw_all %>%
       mutate(disease = "Overall", sex = "All")
   ) %>%
   bind_rows(
-    # Overall males (all diseases combined)
+    # males for hiv and hcv
     sw_males %>%
       filter(!is.na(exposure_time_frame_bin)) %>%
       mutate(
@@ -444,7 +453,7 @@ sw_exposure_summary <- sw_all %>%
       mutate(disease = "Overall", sex = "Males")
   ) %>%
   bind_rows(
-    # Overall females (all diseases combined)
+    # females for hiv and hcv
     sw_females %>%
       filter(!is.na(exposure_time_frame_bin)) %>%
       mutate(
@@ -465,17 +474,15 @@ sw_exposure_summary <- sw_all %>%
 
 print(as.data.frame(sw_exposure_summary))
 
-# Random effects meta-analysis for sex work exposure proportions
+# sex work exposure proportions
 sw_meta_results <- list()
 
-# Updated function to include sex in meta-analysis
+# include sex in meta-analysis
 perform_sw_meta_analysis_with_sex <- function(data, disease_filter, exposure_filter, sex_filter = NULL) {
   if (is.null(sex_filter)) {
-    # For "All" sex analyses, use the original sw_all data
     subset_data <- data %>%
       filter(disease == disease_filter, exposure_time_frame_bin == exposure_filter)
   } else {
-    # For sex-specific analyses
     subset_data <- data %>%
       filter(exposure_time_frame_bin == exposure_filter)
   }
@@ -506,7 +513,7 @@ perform_sw_meta_analysis_with_sex <- function(data, disease_filter, exposure_fil
   }
 }
 
-# Function for overall analyses (combining diseases)
+# overall analyses (combining hiv and hcv)
 perform_sw_overall_meta_analysis_with_sex <- function(data, exposure_filter) {
   subset_data <- data %>%
     filter(exposure_time_frame_bin == exposure_filter) %>%
@@ -534,12 +541,12 @@ perform_sw_overall_meta_analysis_with_sex <- function(data, exposure_filter) {
   }
 }
 
-# Get unique combinations for each analysis
+# unique combinations for each analysis
 sw_combinations <- sw_all %>%
   filter(!is.na(exposure_time_frame_bin)) %>%
   distinct(disease, exposure_time_frame_bin)
 
-# 1. Disease-specific analyses (All sex)
+# male and female analayses
 for (i in 1:nrow(sw_combinations)) {
   disease_val <- sw_combinations$disease[i]
   exposure_val <- sw_combinations$exposure_time_frame_bin[i]
@@ -551,7 +558,7 @@ for (i in 1:nrow(sw_combinations)) {
   }
 }
 
-# 2. Disease-specific analyses for Males
+# male analyses
 sw_males_combinations <- sw_males %>%
   filter(!is.na(exposure_time_frame_bin)) %>%
   distinct(disease, exposure_time_frame_bin)
@@ -567,7 +574,7 @@ for (i in 1:nrow(sw_males_combinations)) {
   }
 }
 
-# 3. Disease-specific analyses for Females
+# female analyses
 sw_females_combinations <- sw_females %>%
   filter(!is.na(exposure_time_frame_bin)) %>%
   distinct(disease, exposure_time_frame_bin)
@@ -583,7 +590,7 @@ for (i in 1:nrow(sw_females_combinations)) {
   }
 }
 
-# 4. Overall analyses (all diseases, all sex)
+# combined hiv and hcv for males and females
 sw_unique_exposures <- sw_all %>%
   filter(!is.na(exposure_time_frame_bin)) %>%
   distinct(exposure_time_frame_bin)
@@ -598,7 +605,7 @@ for (i in 1:nrow(sw_unique_exposures)) {
   }
 }
 
-# 5. Overall analyses for Males
+# combined hiv and hcv for males
 for (i in 1:nrow(sw_unique_exposures)) {
   exposure_val <- sw_unique_exposures$exposure_time_frame_bin[i]
   
@@ -609,7 +616,7 @@ for (i in 1:nrow(sw_unique_exposures)) {
   }
 }
 
-# 6. Overall analyses for Females
+# combined hiv and hcv for females
 for (i in 1:nrow(sw_unique_exposures)) {
   exposure_val <- sw_unique_exposures$exposure_time_frame_bin[i]
   
@@ -620,7 +627,7 @@ for (i in 1:nrow(sw_unique_exposures)) {
   }
 }
 
-# Extract pooled proportions and add to summary
+# pooled proportions
 sw_pooled_proportions <- tibble()
 
 for (name in names(sw_meta_results)) {
@@ -645,21 +652,11 @@ for (name in names(sw_meta_results)) {
   sw_pooled_proportions <- bind_rows(sw_pooled_proportions, pooled_prop)
 }
 
-# Combine crude and pooled results
+# combine crude and pooled %s
 sw_exposure_final <- sw_exposure_summary %>%
   left_join(sw_pooled_proportions, by = c("disease", "sex", "exposure_time_frame_bin"))
 
 print(as.data.frame(sw_exposure_final))
 
-# Save sex work exposure results to Excel
+# save
 write_xlsx(sw_exposure_final, "Drafts/Study characteristics/sw_exposure_final_with_sex.xlsx")
-
-
-
-
-
-
-
-
-
-View(sw_exposure_final)
