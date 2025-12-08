@@ -25,14 +25,14 @@ log_transform <- function(df) {
   return(df)
 }
 
-# Recode lifetime OAT, homelessness, prison % to NA (handles mixed types, missing cols)
+# recode lifetime OAT, homelessness, prison % to NA
 recode_to_na <- function(df) {
-  # Coerce percentage fields to numeric if present (quietly)
+  # percentage fields to numeric
   for (nm in c("oat_perc", "homeless_perc", "prison_perc")) {
     if (nm %in% names(df)) df[[nm]] <- suppressWarnings(as.numeric(df[[nm]]))
   }
 
-  # Normalise time frame labels
+  # time frame labels
   norm <- function(x) tolower(trimws(as.character(x)))
 
   # OAT
@@ -41,13 +41,13 @@ recode_to_na <- function(df) {
     df[["oat_perc"]][is_lt] <- NA_real_
   }
 
-  # Homelessness
+  # homelessness
   if (all(c("homeless_perc", "homeless_time_frame_bin") %in% names(df))) {
     is_lt <- norm(df[["homeless_time_frame_bin"]]) == "lifetime"
     df[["homeless_perc"]][is_lt] <- NA_real_
   }
 
-  # Prison
+  # incarceration
   if (all(c("prison_perc", "prison_time_frame_bin") %in% names(df))) {
     is_lt <- norm(df[["prison_time_frame_bin"]]) == "lifetime"
     df[["prison_perc"]][is_lt] <- NA_real_
@@ -80,7 +80,7 @@ merge_study_characteristics <- function(dfs_list, study_char_df) {
   return(merged_dfs)
 }
 
-# Function to calculate and add effect_unadj_se
+# calculate and add effect_unadj_se
 add_effect_unadj_se <- function(df) {
   if (!all(c("effect_unadj_lb", "effect_unadj_ub") %in% names(df))) {
     stop("The columns 'effect_unadj_lb' and 'effect_unadj_ub' are required to calculate 'effect_unadj_se'.")
@@ -499,7 +499,7 @@ meta_regress_strata_summary <- function(df) {
   }
 
   continuous_vars <- c("age", "female_perc", "inj_age_num", "oat_perc", "homeless_perc", "prison_perc")
-  categorical_vars <- c("2016_bin", "incidence_method", "lmic_bin", "rob_3cat1", "rob_3cat2", "pub_status")
+  categorical_vars <- c("2010_bin", "incidence_method", "lmic_bin", "rob_3cat1", "rob_3cat2", "pub_status")
   vars <- c(categorical_vars, continuous_vars)
 
   medians_used <- list()

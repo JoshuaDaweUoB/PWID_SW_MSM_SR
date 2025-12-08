@@ -690,3 +690,32 @@ print(as.data.frame(sw_exposure_final))
 
 # save
 write_xlsx(sw_exposure_final, "Drafts/Study characteristics/sw_exposure_final_with_sex.xlsx")
+
+# study characteristics
+
+# load dataframe
+study_characteristics <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "Study characteristics") 
+
+# study details
+study_characteristics_details <- study_characteristics %>%
+  select(study, journal, cohort, city, country, design, sampling, recruitment_location, inclusion, exclusion)
+
+# participant details
+study_characteristics_participants <- study_characteristics %>%
+  select(study, median_age, mean_age, perc_prison, perc_homeless_rec, perc_oat_rec, inj_duration)
+
+# hiv and hcv outcomes
+study_characteristics_outcomes <- study_characteristics %>%
+  select(study, testing_frequency_mths, hiv_sample_size, hcv_sample_size, hiv_cases, hiv_follow_up_years, hiv_inc, hiv_inc_95ci, hcv_cases, hcv_follow_up_years, hcv_inc, hcv_inc_95ci) %>%
+  mutate(
+    across(c(hiv_inc, hcv_inc, hiv_inc_95ci, hcv_inc_95ci, hiv_follow_up_years, hcv_follow_up_years), ~ round(as.numeric(.), 1))
+  ) %>%
+  mutate(across(everything(), ~ ifelse(is.na(.), "NR", .)))
+
+
+write_xlsx(study_characteristics_details, "C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/Drafts/Study characteristics/study_characteristics_details.xlsx")
+write_xlsx(study_characteristics_participants, "C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/Drafts/Study characteristics/study_characteristics_participants.xlsx")
+write_xlsx(study_characteristics_outcomes, "C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/Drafts/Study characteristics/study_characteristics_outcomes.xlsx")
+
+
+

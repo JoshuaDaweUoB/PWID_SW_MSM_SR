@@ -555,6 +555,22 @@ test_publication_bias(
   plot_filename = "code/plots/publication bias/funnel_hcv_msm_lifetime_unadj.png"
 )
 
+funnel_dfs_lifetime <- list(
+  hiv_sw_all     = hiv_sw_all %>% filter(exposure_time_frame_bin == "lifetime"),
+  hiv_sw_males   = hiv_sw_males %>% filter(exposure_time_frame_bin == "lifetime"),
+  hiv_sw_females = hiv_sw_females %>% filter(exposure_time_frame_bin == "lifetime"),
+  hiv_msm        = hiv_msm %>% filter(exposure_time_frame_bin == "lifetime"),
+  hcv_sw_all     = hcv_sw_all %>% filter(exposure_time_frame_bin == "lifetime"),
+  hcv_sw_males   = hcv_sw_males %>% filter(exposure_time_frame_bin == "lifetime"),
+  hcv_sw_females = hcv_sw_females %>% filter(exposure_time_frame_bin == "lifetime"),
+  hcv_msm        = hcv_msm %>% filter(exposure_time_frame_bin == "lifetime")
+)
+
+titles_lifetime <- c(
+  "HIV SW All (Lifetime)", "HIV SW Males (Lifetime)", "HIV SW Females (Lifetime)", "HIV MSM (Lifetime)",
+  "HCV SW All (Lifetime)", "HCV SW Males (Lifetime)", "HCV SW Females (Lifetime)", "HCV MSM (Lifetime)"
+)
+
 # filename
 png("code/plots/publication bias/funnel_combined_lifetime_unadj.png", width = 2400, height = 1200, res = 200)
 par(mfrow = c(2, 4), oma = c(0, 0, 2, 0)) # 2 rows, 4 columns
