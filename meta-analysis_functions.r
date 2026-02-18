@@ -372,6 +372,7 @@ combine_and_convert <- function(dfs, idx, labels, desired_cols) {
 # subgroup analysis
 
 # subgroup analyses for recent unadjusted estimates
+
 subgroup_analysis_recent_unadj <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
   # recent exposure 
   filtered_df <- df %>%
@@ -379,60 +380,8 @@ subgroup_analysis_recent_unadj <- function(df, exposure_time_frame, studlab_col,
     filter(!is.na(effect_unadj_ln)) %>%
     filter(effect_unadj_ln != "NR")
   
-  # loop through subgroup variables
-  for (subgroup_var in subgroup_vars) {
-    # exclude rows with missing values in subgroup variables
-    subgroup_filtered_df <- filtered_df %>%
-      filter(!is.na(.data[[subgroup_var]]))
-    
-    # forest plot for subgroups
-    forest_plot <- metagen(
-      TE = subgroup_filtered_df$effect_unadj_ln,
-      lower = subgroup_filtered_df$effect_unadj_lb_ln,
-      upper = subgroup_filtered_df$effect_unadj_ub_ln,
-      studlab = subgroup_filtered_df[[studlab_col]],
-      data = subgroup_filtered_df,
-      sm = "RR",
-      method.tau = "DL",
-      common = FALSE,
-      random = TRUE,
-      backtransf = TRUE,
-      subgroup = subgroup_filtered_df[[subgroup_var]],
-      text.random = "Overall"
-    )
-    
-    # filename for subgroup plot
-    subgroup_filename <- gsub("\\.png$", paste0("_", subgroup_var, ".png"), base_filename)
-    
-    # save
-    png(filename = subgroup_filename, width = 30, height = 20, units = "cm", res = 500)
-    forest(
-      forest_plot,
-      sortvar = subgroup_filtered_df[[studlab_col]],
-      xlim = c(0.2, 4),
-      leftcols = c("study", "country"),
-      leftlabs = c("Study", "Country"),
-      digits = 2,
-      digits.tau2 = 1,
-      digits.I2 = 1,
-      digits.pval.Q = 3,
-      col.inside = "black",
-      subgroup.name = "",
-      subgroup = TRUE,
-      print.byvar = FALSE,
-      col.subgroup = "black"
-    )
-    dev.off()
-  }
-}
-
-# subgroup analyses for lifetime unadjusted estimates
-subgroup_analysis_lifetime_unadj <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
-  # lifetime exposure 
-  filtered_df <- df %>%
-    filter(exposure_time_frame_bin == "lifetime") %>%
-    filter(!is.na(effect_unadj_ln)) %>%
-    filter(effect_unadj_ln != "NR")
+  # Initialize results list
+  all_results <- list()
   
   # loop through subgroup variables
   for (subgroup_var in subgroup_vars) {
@@ -440,6 +389,12 @@ subgroup_analysis_lifetime_unadj <- function(df, exposure_time_frame, studlab_co
     subgroup_filtered_df <- filtered_df %>%
       filter(!is.na(.data[[subgroup_var]]))
     
+    # Skip if no studies available
+    if (nrow(subgroup_filtered_df) < 2) {
+      message(paste0("Skipping ", subgroup_var, " - insufficient studies (n=", nrow(subgroup_filtered_df), ")"))
+      next
+    }
+    
     # forest plot for subgroups
     forest_plot <- metagen(
       TE = subgroup_filtered_df$effect_unadj_ln,
@@ -456,10 +411,53 @@ subgroup_analysis_lifetime_unadj <- function(df, exposure_time_frame, studlab_co
       text.random = "Overall"
     )
     
+    # Extract subgroup results
+    subgroup_levels <- unique(subgroup_filtered_df[[subgroup_var]])
+    for (i in seq_along(subgroup_levels)) {
+      level <- subgroup_levels[i]
+      all_results[[length(all_results) + 1]] <- data.frame(
+        subgroup_variable = subgroup_var,
+        subgroup_level = as.character(level),
+        n_studies = forest_plot$k.w[i],
+        effect = exp(forest_plot$TE.random.w[i]),
+        lower = exp(forest_plot$lower.random.w[i]),
+        upper = exp(forest_plot$upper.random.w[i]),
+        I2 = forest_plot$I2.w[i] * 100,
+        p_value = forest_plot$pval.random.w[i],
+        stringsAsFactors = FALSE
+      )
+    }
+    
+    # Add overall result
+    all_results[[length(all_results) + 1]] <- data.frame(
+      subgroup_variable = subgroup_var,
+      subgroup_level = "Overall",
+      n_studies = forest_plot$k,
+      effect = exp(forest_plot$TE.random),
+      lower = exp(forest_plot$lower.random),
+      upper = exp(forest_plot$upper.random),
+      I2 = forest_plot$I2 * 100,
+      p_value = forest_plot$pval.random,
+      stringsAsFactors = FALSE
+    )
+    
+    # Add test for subgroup differences
+    all_results[[length(all_results) + 1]] <- data.frame(
+      subgroup_variable = subgroup_var,
+      subgroup_level = "Test for subgroup differences",
+      n_studies = NA,
+      effect = NA,
+      lower = NA,
+      upper = NA,
+      I2 = NA,
+      p_value = forest_plot$pval.Q.b.random,
+      stringsAsFactors = FALSE
+    )
+    
     # filename for subgroup plot
     subgroup_filename <- gsub("\\.png$", paste0("_", subgroup_var, ".png"), base_filename)
     
-    # save
+    # save plot
     png(filename = subgroup_filename, width = 30, height = 20, units = "cm", res = 500)
     forest(
       forest_plot,
@@ -479,164 +477,132 @@ subgroup_analysis_lifetime_unadj <- function(df, exposure_time_frame, studlab_co
     )
     dev.off()
   }
+  
+  # Combine and save results to Excel
+  if (length(all_results) > 0) {
+    results_df <- bind_rows(all_results)
+    excel_filename <- gsub("\\.png$", "_results.xlsx", base_filename)
+    writexl::write_xlsx(results_df, path = excel_filename)
+    message(paste0("Results saved to: ", excel_filename))
+  }
+  
+  return(if (length(all_results) > 0) bind_rows(all_results) else NULL)
 }
 
-# meta regression
-meta_regress_strata_summary <- function(df) {
+subgroup_analysis_lifetime_unadj <- function(df, exposure_time_frame, studlab_col, subgroup_vars, base_filename) {
+  # lifetime exposure 
   filtered_df <- df %>%
-    filter(exposure_time_frame_bin == "recent") %>%
-    filter(!is.na(effect_unadj_ln))
-
-  filtered_df$inj_age_num <- suppressWarnings(readr::parse_number(filtered_df$inj_age))
-
-  if ("rob_3cat" %in% names(filtered_df)) {
-    idx <- filtered_df$rob_3cat %in% c("Good", "Satisfactory", "Very good")
-    filtered_df <- filtered_df[idx, , drop = FALSE]
-    filtered_df$rob_3cat1 <- ifelse(filtered_df$rob_3cat == "Satisfactory", 1,
-                                    ifelse(filtered_df$rob_3cat == "Good", 0, NA))
-    filtered_df$rob_3cat2 <- ifelse(filtered_df$rob_3cat == "Very good", 1,
-                                    ifelse(filtered_df$rob_3cat == "Good", 0, NA))
-  }
-
-  continuous_vars <- c("age", "female_perc", "inj_age_num", "oat_perc", "homeless_perc", "prison_perc")
-  categorical_vars <- c("2010_bin", "incidence_method", "lmic_bin", "rob_3cat1", "rob_3cat2", "pub_status")
-  vars <- c(categorical_vars, continuous_vars)
-
-  medians_used <- list()
-  for (v in continuous_vars) {
-    if (v %in% names(filtered_df)) {
-      filtered_df[[v]] <- suppressWarnings(as.numeric(filtered_df[[v]]))
-      if (any(is.na(filtered_df[[v]]))) {
-        warning("Variable ", v, " contains non-numeric values and has been partially converted.")
-      }
-      med <- median(filtered_df[[v]], na.rm = TRUE)
-      medians_used[[v]] <- med
-      filtered_df[[v]] <- ifelse(filtered_df[[v]] >= med, 1, 0)
-    }
-  }
-
-  levels_used <- list()
-  for (v in categorical_vars) {
-    if (v %in% names(filtered_df)) {
-      if (is.character(filtered_df[[v]]) || is.factor(filtered_df[[v]])) {
-        filtered_df[[v]] <- as.factor(filtered_df[[v]])
-        lvls <- levels(droplevels(filtered_df[[v]]))
-        levels_used[[v]] <- paste(lvls, collapse = ";")
-        if (length(lvls) == 2) {
-          filtered_df[[v]] <- as.numeric(filtered_df[[v]]) - 1
-        } else {
-          warning("Variable ", v, " has more than two levels and will be retained as a factor.")
-        }
-      } else {
-        warning("Variable ", v, " is not categorical and cannot be converted.")
-      }
-    }
-  }
-
-  results <- list()
-  for (v in vars) {
-    if (!(v %in% names(filtered_df))) {
-      warning("Variable ", v, " is missing from the dataframe.")
+    filter(exposure_time_frame_bin == "lifetime") %>%
+    filter(!is.na(effect_unadj_ln)) %>%
+    filter(effect_unadj_ln != "NR")
+  
+  # Initialize results list
+  all_results <- list()
+  
+  # loop through subgroup variables
+  for (subgroup_var in subgroup_vars) {
+    # exclude rows with missing values in subgroup variables
+    subgroup_filtered_df <- filtered_df %>%
+      filter(!is.na(.data[[subgroup_var]]))
+    
+    # Skip if no studies available
+    if (nrow(subgroup_filtered_df) < 2) {
+      message(paste0("Skipping ", subgroup_var, " - insufficient studies (n=", nrow(subgroup_filtered_df), ")"))
       next
     }
-    dat <- filtered_df %>% filter(!is.na(.data[[v]]))
-    lvls <- if (v %in% names(levels_used)) levels_used[[v]] else NA_character_
-    med_cutoff <- if (v %in% names(medians_used)) medians_used[[v]] else NA_real_
-    if (nrow(dat) > 2 && length(unique(dat[[v]])) > 1) {
-      dat$group <- as.factor(dat[[v]])
-      res_mod <- tryCatch(
-        metafor::rma(
-          yi = effect_unadj_ln,
-          sei = dat$effect_unadj_se,
-          mods = ~ group,
-          data = dat,
-          method = "DL"
-        ),
-        error = function(e) {
-          message("Error in meta-regression for variable: ", v, " - ", e$message)
-          NULL
-        }
-      )
-
-      logRR0 <- if (!is.null(res_mod)) as.numeric(res_mod$b[1]) else NA
-      logRR1 <- if (!is.null(res_mod) && length(res_mod$b) > 1) as.numeric(res_mod$b[1] + res_mod$b[2]) else NA
-      RR0 <- if (!is.null(res_mod)) exp(logRR0) else NA
-      RR1 <- if (!is.null(res_mod) && length(res_mod$b) > 1) exp(logRR1) else NA
-
-      RR0_lb <- if (!is.null(res_mod)) exp(res_mod$ci.lb[1]) else NA
-      RR0_ub <- if (!is.null(res_mod)) exp(res_mod$ci.ub[1]) else NA
-      RR1_lb <- if (!is.null(res_mod) && length(res_mod$ci.lb) > 1) exp(res_mod$ci.lb[1] + res_mod$ci.lb[2]) else NA
-      RR1_ub <- if (!is.null(res_mod) && length(res_mod$ci.ub) > 1) exp(res_mod$ci.ub[1] + res_mod$ci.ub[2]) else NA
-
-      logRR_ratio <- if (!is.null(res_mod) && length(res_mod$b) > 1) as.numeric(res_mod$b[2]) else NA
-      se_logRR_ratio <- if (!is.null(res_mod) && length(res_mod$vb) > 1) sqrt(res_mod$vb[2,2]) else NA
-      RR_ratio <- if (!is.na(logRR_ratio)) exp(logRR_ratio) else NA
-      RR_ratio_lb <- if (!is.na(logRR_ratio) && !is.na(se_logRR_ratio)) exp(logRR_ratio - 1.96 * se_logRR_ratio) else NA
-      RR_ratio_ub <- if (!is.na(logRR_ratio) && !is.na(se_logRR_ratio)) exp(logRR_ratio + 1.96 * se_logRR_ratio) else NA
-
-      tau2_ratio <- if (!is.null(res_mod)) res_mod$tau2 else NA_real_
-      R2_ratio <- if (!is.null(res_mod) && !is.null(res_mod$R2)) res_mod$R2 else NA_real_
-
-      results[[v]] <- tibble::tibble(
-        variable = v,
-        levels_used = lvls,
-        median_cutoff = med_cutoff,
-        RR_stratum0 = RR0,
-        RR_stratum0_lb = RR0_lb,
-        RR_stratum0_ub = RR0_ub,
-        RR_stratum1 = RR1,
-        RR_stratum1_lb = RR1_lb,
-        RR_stratum1_ub = RR1_ub,
-        RR_ratio = RR_ratio,
-        RR_ratio_lb = RR_ratio_lb,
-        RR_ratio_ub = RR_ratio_ub,
-        RR_estimates0 = sum(dat[[v]] == 0, na.rm = TRUE),
-        RR_estimates1 = sum(dat[[v]] == 1, na.rm = TRUE),
-        tau2_ratio = tau2_ratio,
-        R2_ratio = R2_ratio
-      )
-    } else {
-      results[[v]] <- tibble::tibble(
-        variable = v,
-        levels_used = lvls,
-        median_cutoff = med_cutoff,
-        RR_stratum0 = NA_real_,
-        RR_stratum0_lb = NA_real_,
-        RR_stratum0_ub = NA_real_,
-        RR_stratum1 = NA_real_,
-        RR_stratum1_lb = NA_real_,
-        RR_stratum1_ub = NA_real_,
-        RR_ratio = NA_real_,
-        RR_ratio_lb = NA_real_,
-        RR_ratio_ub = NA_real_,
-        RR_estimates0 = NA_integer_,
-        RR_estimates1 = NA_integer_,
-        tau2_ratio = NA_real_,
-        R2_ratio = NA_real_
+    
+    # forest plot for subgroups
+    forest_plot <- metagen(
+      TE = subgroup_filtered_df$effect_unadj_ln,
+      lower = subgroup_filtered_df$effect_unadj_lb_ln,
+      upper = subgroup_filtered_df$effect_unadj_ub_ln,
+      studlab = subgroup_filtered_df[[studlab_col]],
+      data = subgroup_filtered_df,
+      sm = "RR",
+      method.tau = "DL",
+      common = FALSE,
+      random = TRUE,
+      backtransf = TRUE,
+      subgroup = subgroup_filtered_df[[subgroup_var]],
+      text.random = "Overall"
+    )
+    
+    # Extract subgroup results
+    subgroup_levels <- unique(subgroup_filtered_df[[subgroup_var]])
+    for (i in seq_along(subgroup_levels)) {
+      level <- subgroup_levels[i]
+      all_results[[length(all_results) + 1]] <- data.frame(
+        subgroup_variable = subgroup_var,
+        subgroup_level = as.character(level),
+        n_studies = forest_plot$k.w[i],
+        effect = exp(forest_plot$TE.random.w[i]),
+        lower = exp(forest_plot$lower.random.w[i]),
+        upper = exp(forest_plot$upper.random.w[i]),
+        I2 = forest_plot$I2.w[i] * 100,
+        p_value = forest_plot$pval.random.w[i],
+        stringsAsFactors = FALSE
       )
     }
+    
+    # Add overall result
+    all_results[[length(all_results) + 1]] <- data.frame(
+      subgroup_variable = subgroup_var,
+      subgroup_level = "Overall",
+      n_studies = forest_plot$k,
+      effect = exp(forest_plot$TE.random),
+      lower = exp(forest_plot$lower.random),
+      upper = exp(forest_plot$upper.random),
+      I2 = forest_plot$I2 * 100,
+      p_value = forest_plot$pval.random,
+      stringsAsFactors = FALSE
+    )
+    
+    # Add test for subgroup differences
+    all_results[[length(all_results) + 1]] <- data.frame(
+      subgroup_variable = subgroup_var,
+      subgroup_level = "Test for subgroup differences",
+      n_studies = NA,
+      effect = NA,
+      lower = NA,
+      upper = NA,
+      I2 = NA,
+      p_value = forest_plot$pval.Q.b.random,
+      stringsAsFactors = FALSE
+    )
+    
+    # filename for subgroup plot
+    subgroup_filename <- gsub("\\.png$", paste0("_", subgroup_var, ".png"), base_filename)
+    
+    # save plot
+    png(filename = subgroup_filename, width = 30, height = 20, units = "cm", res = 500)
+    forest(
+      forest_plot,
+      sortvar = subgroup_filtered_df[[studlab_col]],
+      xlim = c(0.2, 4),
+      leftcols = c("study", "country"),
+      leftlabs = c("Study", "Country"),
+      digits = 2,
+      digits.tau2 = 1,
+      digits.I2 = 1,
+      digits.pval.Q = 3,
+      col.inside = "black",
+      subgroup.name = "",
+      subgroup = TRUE,
+      print.byvar = FALSE,
+      col.subgroup = "black"
+    )
+    dev.off()
   }
-  if (length(results) == 0) {
-    return(tibble::tibble(
-      variable = character(),
-      levels_used = character(),
-      median_cutoff = numeric(),
-      RR_stratum0 = numeric(),
-      RR_stratum0_lb = numeric(),
-      RR_stratum0_ub = numeric(),
-      RR_stratum1 = numeric(),
-      RR_stratum1_lb = numeric(),
-      RR_stratum1_ub = numeric(),
-      RR_ratio = numeric(),
-      RR_ratio_lb = numeric(),
-      RR_ratio_ub = numeric(),
-      RR_estimates0 = integer(),
-      RR_estimates1 = integer(),
-      tau2_ratio = numeric(),
-      R2_ratio = numeric()
-    ))
+  
+  # Combine and save results to Excel
+  if (length(all_results) > 0) {
+    results_df <- bind_rows(all_results)
+    excel_filename <- gsub("\\.png$", "_results.xlsx", base_filename)
+    writexl::write_xlsx(results_df, path = excel_filename)
+    message(paste0("Results saved to: ", excel_filename))
   }
-  dplyr::bind_rows(results)
+  
+  return(if (length(all_results) > 0) bind_rows(all_results) else NULL)
 }
 
 # publication bias

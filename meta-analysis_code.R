@@ -24,7 +24,7 @@ dfs <- list(hiv_sw_all, hiv_sw_males, hiv_sw_females, hiv_msm, hcv_sw_all, hcv_s
 rec_unadj <- c("sw_recent_hiv_all_unadj.png", "sw_recent_hiv_males_unadj.png", "sw_recent_hiv_females_unadj.png", "sw_recent_hiv_msm_unadj.png", "sw_recent_hcv_all_unadj.png", "sw_recent_hcv_males_unadj.png", "sw_recent_hcv_females_unadj.png", "sw_recent_hcv_msm_unadj.png")
 rec_adj <- c("sw_recent_hiv_all_adj.png", "sw_recent_hiv_males_adj.png", "sw_recent_hiv_females_adj.png", "sw_recent_hiv_msm_adj.png", "sw_recent_hcv_all_adj.png", "sw_recent_hcv_males_adj.png", "sw_recent_hcv_females_adj.png", "sw_recent_hcv_msm_adj.png")
 sheet_names <- c("HIV_Sex_Work_All", "HIV_Sex_Work_Males", "HIV_Sex_Work_Females", "HIV_MSM", "HCV_Sex_Work_All", "HCV_Sex_Work_Males", "HCV_Sex_Work_Females", "HCV_MSM")
-subgroup_names <- c("pub_status", "2010_bin", "incidence_method", "lmic_bin", "hiv_inc_bin", "hcv_inc_bin")
+subgroup_names <- c("pub_status", "2010_bin", "incidence_method", "lmic_bin", "hiv_inc_bin", "hcv_inc_bin", "age_bin", "female_perc_bin", "inj_age_num_bin", "oat_perc_bin", "homeless_perc_bin", "prison_perc_bin")
 rec_unadj_subgroup <- c("recent_hiv_all_subgroup.png", "recent_hiv_males_subgroup.png", "recent_hiv_females_subgroup.png", "recent_hiv_msm_subgroup.png", "recent_hcv_all_subgroup.png", "recent_hcv_males_subgroup.png", "recent_hcv_females_subgroup.png", "recent_hcv_msm_subgroup.png")
 
 # data cleaning
@@ -82,7 +82,7 @@ for (i in 1:length(dfs)) {
   dfs[[i]] <- df
 }
 
-# Recode lifetime OAT, homelessness, prison to NA before any plots/analyses
+# recode lifetime OAT, homelessness, prison to NA before any plots/analyses
 dfs <- lapply(dfs, recode_to_na)
 
 # filtered data frames back to original variables
@@ -94,6 +94,81 @@ hcv_sw_all     <- dfs[[5]]
 hcv_sw_males   <- dfs[[6]]
 hcv_sw_females <- dfs[[7]]
 hcv_msm        <- dfs[[8]]
+
+# Continuous variables to dichotomise
+continuous_vars <- c("age", "female_perc", "inj_age_num", 
+                     "oat_perc", "homeless_perc", "prison_perc")
+
+# Add this RIGHT BEFORE the binning lapply block:
+dfs <- lapply(dfs, function(df) {
+  bin_cols <- grep("_bin$", names(df), value = TRUE)
+  bin_cols <- bin_cols[bin_cols %in% paste0(continuous_vars, "_bin")]
+  df[bin_cols] <- NULL
+  df
+})
+
+dfs <- lapply(dfs, function(df) {
+
+  # Make numeric injecting age
+  if ("inj_age" %in% names(df)) {
+    df <- df %>%
+      mutate(inj_age_num = as.numeric(ifelse(grepl("^[0-9]+$", inj_age), inj_age, NA)))
+  }
+
+  # Ensure all continuous variables are numeric before binning
+  for (v in continuous_vars) {
+    if (v %in% names(df)) {
+      df[[v]] <- as.numeric(df[[v]])
+    }
+  }
+
+  strat_col <- "exposure_time_frame_bin"
+
+  if (strat_col %in% names(df)) {
+    # Stratified median binning
+    df <- df %>%
+      group_by(across(all_of(strat_col))) %>%
+      mutate(across(all_of(continuous_vars),
+                    ~ {
+                      x <- .
+                      if (length(unique(na.omit(x))) > 1) {
+                        med <- median(x, na.rm = TRUE)
+                        med_rounded <- round(med, 1)
+                        case_when(
+                          x < med ~ paste0("<", med_rounded),
+                          x >= med ~ paste0(med_rounded, "+"),
+                          TRUE ~ NA_character_
+                        )
+                      } else {
+                        NA_character_
+                      }
+                    },
+                    .names = "{.col}_bin"
+      )) %>%
+      ungroup()
+  } else {
+    # Global median binning
+    for (v in continuous_vars) {
+      if (v %in% names(df) && length(unique(na.omit(df[[v]]))) > 1) {
+        med <- median(df[[v]], na.rm = TRUE)
+        med_rounded <- round(med, 1)
+        df[[paste0(v, "_bin")]] <- case_when(
+          df[[v]] < med ~ paste0("<", med_rounded),
+          df[[v]] >= med ~ paste0(med_rounded, "+"),
+          TRUE ~ NA_character_
+        )
+      } else {
+        df[[paste0(v, "_bin")]] <- NA_character_
+      }
+    }
+  }
+
+  df
+})
+
+
+
+
 
 # recent unadjusted forest plots
 for (i in 1:length(dfs)) {
@@ -346,43 +421,6 @@ for (i in 1:length(dfs)) {
     filename
   )
 }
-
-# meta regression
-
-# Add effect_unadj_se to each data frame
-hiv_sw_all <- add_effect_unadj_se(hiv_sw_all)
-hiv_sw_males <- add_effect_unadj_se(hiv_sw_males)
-hiv_sw_females <- add_effect_unadj_se(hiv_sw_females)
-hiv_msm <- add_effect_unadj_se(hiv_msm)
-hcv_sw_all <- add_effect_unadj_se(hcv_sw_all)
-hcv_sw_males <- add_effect_unadj_se(hcv_sw_males)
-hcv_sw_females <- add_effect_unadj_se(hcv_sw_females)
-hcv_msm <- add_effect_unadj_se(hcv_msm)
-
-# apply meta-regression to each df
-meta_regress_hiv_sw_all_strata     <- meta_regress_strata_summary(hiv_sw_all)
-meta_regress_hiv_sw_males_strata   <- meta_regress_strata_summary(hiv_sw_males)
-meta_regress_hiv_sw_females_strata <- meta_regress_strata_summary(hiv_sw_females)
-meta_regress_hiv_msm_strata        <- meta_regress_strata_summary(hiv_msm)
-meta_regress_hcv_sw_all_strata     <- meta_regress_strata_summary(hcv_sw_all)
-meta_regress_hcv_sw_males_strata   <- meta_regress_strata_summary(hcv_sw_males)
-meta_regress_hcv_sw_females_strata <- meta_regress_strata_summary(hcv_sw_females)
-meta_regress_hcv_msm_strata        <- meta_regress_strata_summary(hcv_msm)
-
-# save
-writexl::write_xlsx(
-  list(
-    hiv_sw_all     = meta_regress_hiv_sw_all_strata,
-    hiv_sw_males   = meta_regress_hiv_sw_males_strata,
-    hiv_sw_females = meta_regress_hiv_sw_females_strata,
-    hiv_msm        = meta_regress_hiv_msm_strata,
-    hcv_sw_all     = meta_regress_hcv_sw_all_strata,
-    hcv_sw_males   = meta_regress_hcv_sw_males_strata,
-    hcv_sw_females = meta_regress_hcv_sw_females_strata,
-    hcv_msm        = meta_regress_hcv_msm_strata
-  ),
-  path = "code/meta_regression_strata_summary.xlsx"
-)
 
 # publication bias
 
