@@ -92,7 +92,7 @@ hiv_msm_subset <- hiv_msm %>%
     disease = "hiv"
   )
 
-hcv_msm_subset <- hcv_msm %>%
+hcv_msm_subset <- hcv_msm_sens %>%
   mutate(
     male_perc = as.numeric(male_perc),
     disease = "hcv"

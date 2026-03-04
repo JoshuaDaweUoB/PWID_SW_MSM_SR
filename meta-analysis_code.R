@@ -19,8 +19,6 @@ hcv_sw_females <- read_excel("Data extraction/Full data extraction.xlsx", sheet 
 hcv_msm <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - MSM")
 hcv_msm_sens <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - MSM") %>%
   filter(male_perc == 1)
-View(hcv_msm)
-View(hcv_msm_sens)
 study_characteristics <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "Study characteristics") 
 
 # define dataframes and lists
