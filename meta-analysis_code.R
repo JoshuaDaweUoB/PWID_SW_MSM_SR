@@ -16,16 +16,20 @@ hiv_msm <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HIV 
 hcv_sw_all <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - Sex work - All") 
 hcv_sw_males <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - Sex work - Male") 
 hcv_sw_females <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - Sex work - Female") 
-hcv_msm <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - MSM") 
+hcv_msm <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - MSM")
+hcv_msm_sens <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HCV - MSM") %>%
+  filter(male_perc == 1)
+View(hcv_msm)
+View(hcv_msm_sens)
 study_characteristics <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "Study characteristics") 
 
 # define dataframes and lists
-dfs <- list(hiv_sw_all, hiv_sw_males, hiv_sw_females, hiv_msm, hcv_sw_all, hcv_sw_males, hcv_sw_females, hcv_msm)
-rec_unadj <- c("sw_recent_hiv_all_unadj.png", "sw_recent_hiv_males_unadj.png", "sw_recent_hiv_females_unadj.png", "sw_recent_hiv_msm_unadj.png", "sw_recent_hcv_all_unadj.png", "sw_recent_hcv_males_unadj.png", "sw_recent_hcv_females_unadj.png", "sw_recent_hcv_msm_unadj.png")
-rec_adj <- c("sw_recent_hiv_all_adj.png", "sw_recent_hiv_males_adj.png", "sw_recent_hiv_females_adj.png", "sw_recent_hiv_msm_adj.png", "sw_recent_hcv_all_adj.png", "sw_recent_hcv_males_adj.png", "sw_recent_hcv_females_adj.png", "sw_recent_hcv_msm_adj.png")
+dfs <- list(hiv_sw_all, hiv_sw_males, hiv_sw_females, hiv_msm, hcv_sw_all, hcv_sw_males, hcv_sw_females, hcv_msm, hcv_msm_sens)
+rec_unadj <- c("sw_recent_hiv_all_unadj.png", "sw_recent_hiv_males_unadj.png", "sw_recent_hiv_females_unadj.png", "sw_recent_hiv_msm_unadj.png", "sw_recent_hcv_all_unadj.png", "sw_recent_hcv_males_unadj.png", "sw_recent_hcv_females_unadj.png", "sw_recent_hcv_msm_unadj.png", "sw_recent_hcv_msm_sens_unadj.png")
+rec_adj <- c("sw_recent_hiv_all_adj.png", "sw_recent_hiv_males_adj.png", "sw_recent_hiv_females_adj.png", "sw_recent_hiv_msm_adj.png", "sw_recent_hcv_all_adj.png", "sw_recent_hcv_males_adj.png", "sw_recent_hcv_females_adj.png", "sw_recent_hcv_msm_adj.png", "sw_recent_hcv_msm_sens_adj.png")
 sheet_names <- c("HIV_Sex_Work_All", "HIV_Sex_Work_Males", "HIV_Sex_Work_Females", "HIV_MSM", "HCV_Sex_Work_All", "HCV_Sex_Work_Males", "HCV_Sex_Work_Females", "HCV_MSM")
 subgroup_names <- c("pub_status", "2010_bin", "incidence_method", "lmic_bin", "hiv_inc_bin", "hcv_inc_bin", "age_bin", "female_perc_bin", "inj_age_num_bin", "oat_perc_bin", "homeless_perc_bin", "prison_perc_bin")
-rec_unadj_subgroup <- c("recent_hiv_all_subgroup.png", "recent_hiv_males_subgroup.png", "recent_hiv_females_subgroup.png", "recent_hiv_msm_subgroup.png", "recent_hcv_all_subgroup.png", "recent_hcv_males_subgroup.png", "recent_hcv_females_subgroup.png", "recent_hcv_msm_subgroup.png")
+rec_unadj_subgroup <- c("recent_hiv_all_subgroup.png", "recent_hiv_males_subgroup.png", "recent_hiv_females_subgroup.png", "recent_hiv_msm_subgroup.png", "recent_hcv_all_subgroup.png", "recent_hcv_males_subgroup.png", "recent_hcv_females_subgroup.png", "recent_hcv_msm_subgroup.png", "recent_hcv_msm_sens_subgroup.png")
 
 # data cleaning
 
@@ -73,6 +77,7 @@ hcv_sw_all     <- dfs[[5]]
 hcv_sw_males   <- dfs[[6]]
 hcv_sw_females <- dfs[[7]]
 hcv_msm        <- dfs[[8]]
+hcv_msm_sens   <- dfs[[9]]
 
 # convert to numeric and log transform
 for (i in 1:length(dfs)) {
@@ -94,6 +99,7 @@ hcv_sw_all     <- dfs[[5]]
 hcv_sw_males   <- dfs[[6]]
 hcv_sw_females <- dfs[[7]]
 hcv_msm        <- dfs[[8]]
+hcv_msm_sens   <- dfs[[9]]
 
 # Continuous variables to dichotomise
 continuous_vars <- c("age", "female_perc", "inj_age_num", 
