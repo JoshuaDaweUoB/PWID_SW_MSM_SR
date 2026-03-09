@@ -170,10 +170,6 @@ dfs <- lapply(dfs, function(df) {
   df
 })
 
-
-
-
-
 # recent unadjusted forest plots
 for (i in 1:length(dfs)) {
   filename <- paste0("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV/code/plots/unadjusted/recent/", rec_unadj[i])
