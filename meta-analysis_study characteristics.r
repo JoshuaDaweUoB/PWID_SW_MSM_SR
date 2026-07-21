@@ -37,7 +37,7 @@ summary_table <- study_characteristics %>%
     .groups = "drop"
   )
 
-# total estimates and studies for Sex work/MSM
+# total estimates and studies for sex work/MSM
 sw_msm_table <- study_characteristics %>%
   mutate(group = case_when(
     sex_work == "Yes" & msm == "Yes" ~ "Both Sex work and MSM",
@@ -293,15 +293,15 @@ msm_exposure_final <- msm_exposure_summary %>%
 
 print(as.data.frame(msm_exposure_final))
 
-# Save MSM exposure results to Excel
+# save MSM exposure results to Excel
 write_xlsx(msm_exposure_final, "Drafts/Study characteristics/msm_exposure_final.xlsx")
 
-# Define the columns to keep
+# columns to keep
 cols_to_keep <- c(
   "title", "study", "lead_author", "published", "city", "country", "who_region", "lmic_4cat", "lmic_bin", "hiv_crim", "rob_3cat", "cohort", "pub_status", "use", "exposure_time_frame_bin", "incidence_method", "female_num", "female_perc", "exposure_time_frame", "exposed_num", "exposed_perc", "exposed_incidence_100py", "exposed_incidence_lb", "exposed_incidence_ub", "unexposed_num", "unexposed_perc", "unexposed_incidence_100py", "unexposed_incidence_lb", "unexposed_incidence_ub", "disease"
 )
 
-# Ensure 'female_perc' is numeric and add 'disease' column
+# 'female_perc' numeric and add 'disease' column
 hiv_sw_all_subset <- hiv_sw_all %>%
   mutate(
     female_perc = as.numeric(female_perc),

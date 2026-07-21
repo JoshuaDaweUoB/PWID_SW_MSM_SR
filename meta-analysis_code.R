@@ -99,11 +99,10 @@ hcv_sw_females <- dfs[[7]]
 hcv_msm        <- dfs[[8]]
 hcv_msm_sens   <- dfs[[9]]
 
-# Continuous variables to dichotomise
+# continuous variables to dichotomise
 continuous_vars <- c("age", "female_perc", "inj_age_num", 
                      "oat_perc", "homeless_perc", "prison_perc")
 
-# Add this RIGHT BEFORE the binning lapply block:
 dfs <- lapply(dfs, function(df) {
   bin_cols <- grep("_bin$", names(df), value = TRUE)
   bin_cols <- bin_cols[bin_cols %in% paste0(continuous_vars, "_bin")]
@@ -113,13 +112,13 @@ dfs <- lapply(dfs, function(df) {
 
 dfs <- lapply(dfs, function(df) {
 
-  # Make numeric injecting age
+  # numeric injecting age
   if ("inj_age" %in% names(df)) {
     df <- df %>%
       mutate(inj_age_num = as.numeric(ifelse(grepl("^[0-9]+$", inj_age), inj_age, NA)))
   }
 
-  # Ensure all continuous variables are numeric before binning
+  # all continuous variables numeric
   for (v in continuous_vars) {
     if (v %in% names(df)) {
       df[[v]] <- as.numeric(df[[v]])
@@ -129,7 +128,6 @@ dfs <- lapply(dfs, function(df) {
   strat_col <- "exposure_time_frame_bin"
 
   if (strat_col %in% names(df)) {
-    # Stratified median binning
     df <- df %>%
       group_by(across(all_of(strat_col))) %>%
       mutate(across(all_of(continuous_vars),
@@ -151,7 +149,6 @@ dfs <- lapply(dfs, function(df) {
       )) %>%
       ungroup()
   } else {
-    # Global median binning
     for (v in continuous_vars) {
       if (v %in% names(df) && length(unique(na.omit(df[[v]]))) > 1) {
         med <- median(df[[v]], na.rm = TRUE)
@@ -424,6 +421,15 @@ for (i in 1:length(dfs)) {
 
 # publication bias
 
+hiv_sw_all <- add_effect_unadj_se(hiv_sw_all)
+hiv_sw_males <- add_effect_unadj_se(hiv_sw_males)
+hiv_sw_females <- add_effect_unadj_se(hiv_sw_females)
+hiv_msm <- add_effect_unadj_se(hiv_msm)
+hcv_sw_all <- add_effect_unadj_se(hcv_sw_all)
+hcv_sw_males <- add_effect_unadj_se(hcv_sw_males)
+hcv_sw_females <- add_effect_unadj_se(hcv_sw_females)
+hcv_msm <- add_effect_unadj_se(hcv_msm)
+
 # publication bias tests for each dataframe (recent)
 test_publication_bias(
   hiv_sw_all %>% filter(exposure_time_frame_bin == "recent"),
@@ -492,6 +498,7 @@ funnel_dfs <- list(
   hcv_sw_females = hcv_sw_females %>% filter(exposure_time_frame_bin == "recent"),
   hcv_msm        = hcv_msm %>% filter(exposure_time_frame_bin == "recent")
 )
+
 titles <- c(
   "HIV SW All", "HIV SW Males", "HIV SW Females", "HIV MSM",
   "HCV SW All", "HCV SW Males", "HCV SW Females", "HCV MSM"
