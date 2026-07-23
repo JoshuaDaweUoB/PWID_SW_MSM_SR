@@ -1,12 +1,15 @@
 # load packages
 pacman::p_load("meta", "metafor", "DescTools", "car", "readxl", "writexl", "tidyverse", "purrr")
 
+# set working directory
+setwd("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV")
+
+# run functions script
+source("code/code/meta-analysis_functions.r")
+
 # housekeeping
 settings.meta(CIbracket = "(") 
 settings.meta(CIseparator = "-") 
-
-# set working directory
-setwd("C:/Users/vl22683/OneDrive - University of Bristol/Documents/Publications/Sex work and risk of HIV and HCV")
 
 # load dataframes
 hiv_sw_all <- read_excel("Data extraction/Full data extraction.xlsx", sheet = "HIV - Sex work - All") 
@@ -285,11 +288,66 @@ writexl::write_xlsx(
 
 # combined plotting
 
+dfs <- lapply(dfs, function(df) {
+
+  exposed_num_num <- if ("exposed_num" %in% names(df)) {
+    suppressWarnings(as.numeric(gsub(",", "", as.character(df$exposed_num), fixed = TRUE)))
+  } else {
+    rep(NA_real_, nrow(df))
+  }
+
+  unexposed_num_num <- if ("unexposed_num" %in% names(df)) {
+    suppressWarnings(as.numeric(gsub(",", "", as.character(df$unexposed_num), fixed = TRUE)))
+  } else {
+    rep(NA_real_, nrow(df))
+  }
+
+exposed_perc_num <- if ("exposed_perc" %in% names(df)) {
+  suppressWarnings(as.numeric(gsub("%", "", as.character(df$exposed_perc), fixed = TRUE)))
+} else {
+  rep(NA_real_, nrow(df))
+}
+
+# create display string: if value <= 1 assume proportion and multiply by 100
+exposed_perc_display <- ifelse(
+  is.na(exposed_perc_num),
+  NA_character_,
+  paste0(ifelse(exposed_perc_num <= 1,
+                format(round(exposed_perc_num * 100, 1), nsmall = 1),
+                format(round(exposed_perc_num, 1), nsmall = 1)),
+         "%")
+)
+
+df <- df %>%
+  mutate(
+    exposed_num_num = exposed_num_num,
+    unexposed_num_num = unexposed_num_num,
+    exposed_perc_num = exposed_perc_num,
+    exposed_perc_display = exposed_perc_display
+  ) %>%
+  mutate(
+    exposed_n_pct = dplyr::case_when(
+      !is.na(exposed_num_num) & !is.na(exposed_perc_display) ~
+        paste0(formatC(exposed_num_num, format = "d", big.mark = ","), " (", exposed_perc_display, ")"),
+      !is.na(exposed_num_num) ~ formatC(exposed_num_num, format = "d", big.mark = ","),
+      !is.na(exposed_perc_display) ~ exposed_perc_display,
+      TRUE ~ NA_character_
+    ),
+    sample_size = ifelse(!is.na(exposed_num_num) & !is.na(unexposed_num_num),
+                         exposed_num_num + unexposed_num_num,
+                         NA_real_)
+  )
+
+  df
+})
+
 desired_cols <- c(
-  "study", "rob_3cat", "cohort", "pub_status", "use", "year_start", "year_end", "mid_year", "2016_bin", "exposure_time_frame_bin", "country", "df",
+  "study", "rob_3cat", "cohort", "pub_status", "use", "year_start", "year_end", "mid_year",
+  "2016_bin", "exposure_time_frame_bin", "country", "df",
   "moa_unadj", "effect_unadj", "effect_unadj_lb", "effect_unadj_ub", "effect_unadj_p",
   "moa_adj", "effect_adj", "effect_adj_lb", "effect_adj_ub", "effect_adj_p", "effect_adj_vars",
-  "effect_unadj_ln", "effect_unadj_lb_ln", "effect_unadj_ub_ln"
+  "effect_unadj_ln", "effect_unadj_lb_ln", "effect_unadj_ub_ln",
+  "exposed_n_pct", "sample_size"
 )
 
 virus_idx <- list(hiv = 1:3, hcv = 5:7)
@@ -649,7 +707,7 @@ for (i in seq_along(funnel_dfs_lifetime)) {
          pch = 19, 
          title = "Publication Status",
          bty = "n",
-         cex = 0.6)  # Small text for combined plot
+         cex = 0.6) 
 }
 
 mtext("Funnel Plots for Publication Bias (Lifetime Unadjusted Estimates)", outer = TRUE, cex = 1.5)

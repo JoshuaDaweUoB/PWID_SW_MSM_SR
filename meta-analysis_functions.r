@@ -159,14 +159,14 @@ recent_unadj_forest_plot_combined <- function(df, exposure_time_frame, effect_co
   summary(forest_plot)
   
   print(paste("Saving plot to:", filename))
-  png(filename = filename, width = 35, height = 35, units = "cm", res = 500)
+  png(filename = filename, width = 50, height = 40, units = "cm", res = 500)
   
   forest_sw <- forest(
     forest_plot, 
     sortvar = country,
     xlim = c(0.2, 4),             
-    leftcols = c("study", "cohort", "country"),
-    leftlabs = c("Study", "Cohort", "Country"),
+    leftcols = c("study", "cohort", "country", "exposed_n_pct", "sample_size"),
+    leftlabs = c("Study", "Cohort", "Country", "Exposed (n%)", "Sample size"),
     digits = 2,
     digits.tau2 = 1,
     digits.I2 = 1,
@@ -294,8 +294,8 @@ lifetime_unadj_forest_plot_combined <- function(df, exposure_time_frame, effect_
     forest_plot, 
     sortvar = country,
     xlim = c(0.2, 4),             
-    leftcols = c("study", "cohort", "country", "pub_status"), 
-    leftlabs = c("Study", "Cohort", "Country", "Publication Status"),
+    leftcols = c("study", "cohort", "country", "exposed_n_pct", "sample_size", "pub_status"), 
+    leftlabs = c("Study", "Cohort", "Country", "Exposed (n%)", "Sample size", "Publication Status"),
     digits = 2,
     digits.tau2 = 1,
     digits.I2 = 1,
